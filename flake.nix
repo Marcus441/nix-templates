@@ -3,14 +3,14 @@
 
   outputs = {self}: {
     templates = {
-      c = {
-        path = ./c;
+      cpp = {
+        path = ./cpp;
         description = "Dev environment for C/C++";
       };
-      rust = {
-        path = ./rust;
-        description = "Dev environment for rust";
-      };
+      # rust = {
+      #   path = ./rust;
+      #   description = "Dev environment for rust";
+      # };
     };
     defaultTemplate = self.templates.shell;
   };
