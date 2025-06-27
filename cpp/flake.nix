@@ -33,7 +33,7 @@
         # };
 
         shellHook = ''
-          echo "🛠️  C++ dev shell with Clang + libc++"
+          echo "🛠️  C++ dev shell with Clang"
           echo "🔧  Compiler: $("${pkgs.clang}/bin/clang" --version | head -n 1)"
         '';
       };
