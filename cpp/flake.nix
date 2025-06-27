@@ -19,18 +19,11 @@
           cmake
           gnumake
           bear
-          clang # Clang with libc++ and compiler-rt
+          clang # Clang
           clang-tools # Extra tools: clang-format, clang-tidy, etc.
           lldb # LLVM debugger
           gdb # GNU debugger for comparison
         ];
-
-        # env = {
-        #   CC = "${clang}/bin/clang";
-        #   CXX = "${clang}/bin/clang++";
-        #   CXXFLAGS = "-std=c++23 -stdlib=libc++";
-        #   LDFLAGS = "-stdlib=libc++";
-        # };
 
         shellHook = ''
           echo "🛠️  C++ dev shell with Clang"
