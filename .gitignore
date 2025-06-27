@@ -1,0 +1,7 @@
+# C++ gitignore
+result
+build/*
+cpp/.cache
+
+# Nix artifacts
+flake.lock
