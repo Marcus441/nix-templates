@@ -1,4 +1,5 @@
 # C++ gitignore
 result
-build
+/build/*
+!/build/.gitkeep
 .cache
