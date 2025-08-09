@@ -4,7 +4,7 @@
     "target": "ES2020",
     "lib": ["ES2020", "DOM", "DOM.Iterable"],
     "module": "ESNext",
-    "moduleResolution": "Node",
+    "moduleResolution": "ESNext",
     "types": ["node"],
 
     /* Class fields & modern semantics */
@@ -34,4 +34,3 @@
   "include": ["src"],
   "exclude": ["node_modules", "dist"]
 }
-
