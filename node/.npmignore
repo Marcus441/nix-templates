@@ -1,4 +1,5 @@
-node_modules
-dist
-.env
-*.log
+src
+test
+tsconfig.json
+tsconfig.build.json
+.vscode
