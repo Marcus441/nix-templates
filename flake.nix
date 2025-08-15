@@ -11,6 +11,10 @@
         path = ./node;
         description = "Dev environment for node.js";
       };
+      node-rest-api = {
+        path = ./node-rest-api;
+        description = "Dev environment for a node.js rest api";
+      };
       # rust = {
       #   path = ./rust;
       #   description = "Dev environment for rust";
