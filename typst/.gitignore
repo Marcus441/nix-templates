@@ -1,0 +1,9 @@
+# Ignore compiled PDFs
+docs/*.pdf
+
+# Ignore temporary Typst build files (if any)
+*.aux
+*.log
+
+# Nix builds 
+result

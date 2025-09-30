@@ -15,10 +15,10 @@
         path = ./node-rest-api;
         description = "Dev environment for a node.js rest api";
       };
-      # rust = {
-      #   path = ./rust;
-      #   description = "Dev environment for rust";
-      # };
+      typst = {
+        path = ./typst;
+        description = "Dev environment for typst documents";
+      };
     };
     defaultTemplate = self.templates.shell;
   };
