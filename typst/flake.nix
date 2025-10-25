@@ -1,6 +1,6 @@
 {
   inputs = {
-    nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable";
+    nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
     flake-utils.url = "github:numtide/flake-utils";
   };
 
@@ -11,19 +11,35 @@
   }:
     flake-utils.lib.eachDefaultSystem (system: let
       pkgs = import nixpkgs {inherit system;};
+      # import any fonts in here
+      fonts = with pkgs; [
+        font-awesome
+      ];
+      fontConf = pkgs.makeFontsConf {
+        fontDirectories = [
+          (pkgs.linkFarm "fonts" (map (f: {
+              inherit (f) name;
+              path = f;
+            })
+            fonts))
+        ];
+      };
     in {
-      devShell = pkgs.mkShell {
+      devShells.default = pkgs.mkShell {
         name = "Typst shell";
 
-        buildInputs = with pkgs; [
-          typst
-        ];
+        buildInputs = [pkgs.typst] ++ fonts;
+
+        FONTCONFIG_FILE = fontConf;
 
         shellHook = ''
           echo "╔═══════════════════════════════╗"
           echo "║  🖋 Typst Development Shell 🖋  ║"
           echo "╚═══════════════════════════════╝"
           echo "Run 'typst --help' to get started!"
+          echo
+          echo "Checking fonts available to Typst..."
+          typst fonts | grep -E "Source|Roboto|Awesome" || echo "⚠️  Fonts not detected!"
         '';
       };
     });
