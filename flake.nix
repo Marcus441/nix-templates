@@ -7,6 +7,10 @@
         path = ./cpp;
         description = "Dev environment for C/C++";
       };
+      jetson-cpp = {
+        path = ./jetson-cpp;
+        description = "Dev Dev environment for C/C++ on the Jetson platform";
+      };
       node = {
         path = ./node;
         description = "Dev environment for node.js";
