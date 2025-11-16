@@ -1,0 +1,71 @@
+# -------------------------------------------
+# Python
+# -------------------------------------------
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.swp
+*.swo
+*.ruff_cache/
+.mypy_cache/
+.pytest_cache/
+*.egg-info/
+*.dist-info/
+
+# Virtual environments (even if you're using nix, other devs might not)
+venv/
+env/
+.venv/
+
+# -------------------------------------------
+# Build artifacts
+# -------------------------------------------
+build/
+dist/
+*.so          
+*.a
+*.o
+
+# -------------------------------------------
+# Jetson / CUDA / TensorRT / Deep Learning
+# -------------------------------------------
+
+# TensorRT engine files (HUGE binary blobs)
+*.engine
+*.plan
+
+# ONNX / weights
+*.onnx
+*.pb
+*.pth
+*.pt
+*.tflite
+
+# Jetson-specific generated CUDA kernels
+*.cu.cpp
+*.cubin
+*.fatbin
+*.cache/
+
+# Torch CUDA cache
+~/.cache/torch_extensions/
+
+# NVIDIA CUDA compiler cache
+~/.nv/ComputeCache/
+
+# -------------------------------------------
+# Nix
+# -------------------------------------------
+result
+.nix-gc-root/
+.direnv/
+.cache/nix/
+
+# -------------------------------------------
+# Editor / OS
+# -------------------------------------------
+*.log
+.DS_Store
+.vscode/
+.idea/

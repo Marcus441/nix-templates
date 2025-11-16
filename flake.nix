@@ -9,7 +9,7 @@
       };
       cpp-jetson = {
         path = ./cpp-jetson;
-        description = "Dev Dev environment for C/C++ on the Jetson platform";
+        description = "Dev environment for C/C++ on the Jetson platform";
       };
       node = {
         path = ./node;
@@ -18,6 +18,10 @@
       node-rest-api = {
         path = ./node-rest-api;
         description = "Dev environment for a node.js rest api";
+      };
+      python-jetson = {
+        path = ./python-jetson;
+        description = "Dev Environment for Python on the jetson platform";
       };
       typst = {
         path = ./typst;
