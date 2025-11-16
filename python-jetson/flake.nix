@@ -16,35 +16,36 @@
   }:
     flake-utils.lib.eachDefaultSystem (
       system: let
-        # Current system packages
         pkgs = import nixpkgs {
           inherit system;
           config.allowUnfree = true;
         };
         nix2containerPkgs = nix2container.packages.${system};
         pkgsArm = pkgs.pkgsCross.aarch64-multiplatform;
+        python = pkgs.python313;
+        pythonPkgs = pkgs.python313Packages;
       in {
         devShells.default = pkgs.mkShell {
           name = "jetson-python";
 
-          packages = with pkgs; [
-            python311
-            python311Packages.pip
-            python311Packages.setuptools
-            python311Packages.wheel
+          packages = [
+            python
+            pythonPkgs.pip
+            pythonPkgs.setuptools
+            pythonPkgs.wheel
 
-            python311Packages.numpy
-            python311Packages.opencv4
-            python311Packages.pyyaml
+            pythonPkgs.numpy
+            pythonPkgs.opencv4
+            pythonPkgs.pyyaml
 
-            cmake
-            pkg-config
+            pkgs.cmake
+            pkgs.pkg-config
           ];
 
           shellHook = ''
-            echo "╔══════════════════════════════════════╗"
+            echo "╔═══════════════════════════════════════╗"
             echo "║    Jetson Python Development Shell    ║"
-            echo "╚══════════════════════════════════════╝"
+            echo "╚═══════════════════════════════════════╝"
             echo -n " Python: "
             python3 --version
             echo -n " System: "
