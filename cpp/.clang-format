@@ -1,0 +1,7 @@
+BasedOnStyle: Chromium
+IndentWidth: 2
+ColumnLimit: 80
+AllowShortFunctionsOnASingleLine: Empty
+PointerAlignment: Left
+DerivePointerAlignment: false
+Standard: Latest

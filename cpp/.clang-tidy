@@ -1,0 +1,8 @@
+Checks: 'google-*,readability-identifier-naming'
+CheckOptions:
+  - { key: readability-identifier-naming.ClassMemberSuffix, value: "_" }
+  - { key: readability-identifier-naming.ClassMemberCase,   value: snake_case }
+  - { key: readability-identifier-naming.FunctionCase,      value: CamelCase }
+  - { key: readability-identifier-naming.VariableCase,      value: snake_case }
+  - { key: readability-identifier-naming.ConstantPrefix,    value: k }
+  - { key: readability-identifier-naming.ConstantCase,      value: CamelCase }
