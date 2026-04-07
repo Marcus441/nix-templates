@@ -30,7 +30,7 @@ target_compile_options(${PROJECT_NAME} PRIVATE
     -fcolor-diagnostics
     -pedantic -Wall -Wextra -Wshadow -Wnon-virtual-dtor -Wunused
     $<$<CONFIG:Release>:-O3>
-    $<$<CONFIG:Debug>:-g -O0>
+    $<$<CONFIG:Debug>:-g -Og>
 )
 
 # [QUAL] Sanitizers and quality gates
