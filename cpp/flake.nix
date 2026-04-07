@@ -14,66 +14,66 @@
   }:
     flake-utils.lib.eachDefaultSystem (system: let
       pkgs = import nixpkgs {inherit system;};
-      project = "back-prop"; # [META] Match your CMake project name
+      # [META] Project and Tooling versions
+      project = "myproject";
+      llvm_ver = "18";
+      llvm_pkgs = pkgs."llvmPackages_${llvm_ver}";
     in {
-      # [BUILD] Standard 'nix build' configuration
+      # [PACK] Standard package build
       packages.default = pkgs.stdenv.mkDerivation {
         pname = project;
         version = "0.1.0";
         src = ./.;
 
-        # [TOOL] Build-time dependencies
+        # [TOOL] Build-time host dependencies
         nativeBuildInputs = with pkgs; [
+          llvm_pkgs.clang
           cmake
           ninja
           pkg-config
         ];
 
-        # [DEPS] Runtime dependencies (e.g., Eigen, fmt)
+        # [DEPS] Target runtime dependencies
         buildInputs = with pkgs; [];
 
-        # [FLAG] Pass flags to CMake
-        # Disable sanitizers for the final 'nix build' to maximize performance
+        # [FLAG] CMake configuration flags
         cmakeFlags = [
+          "-DCMAKE_CXX_COMPILER=clang++"
           "-DCMAKE_BUILD_TYPE=Release"
           "-DUSE_SANITIZERS=OFF"
         ];
 
-        # [TEST] Enables 'nix build' to run CTest automatically
+        # [TEST] Validation logic
         doCheck = true;
-        checkPhase = ''
-          ctest --output-on-failure
-        '';
+        checkPhase = "ctest --output-on-failure";
       };
 
-      # [DEV] Standard 'nix develop' configuration
+      # [SHELL] Development environment
       devShells.default = pkgs.mkShell {
         name = "${project}-dev-shell";
 
-        # Inherit inputs from the main package
+        # [INPT] Inherit build requirements
         inputsFrom = [self.packages.${system}.default];
 
-        # Development-only tools
+        # [TOOL] Development-only utilities
         nativeBuildInputs = with pkgs; [
-          clang_18 # Specific version for C++23/std::print support
-          clang-tools_18 # Includes clang-format and clang-tidy
-          lldb
+          llvm_pkgs.clang-tools
+          llvm_pkgs.lldb
           gdb
-          valgrind # Useful when ASan is toggled off
+          valgrind
         ];
 
-        # [ENV] Hardcode CC/CXX to ensure Nix uses Clang instead of GCC
+        # [HOOK] Shell entry configuration
         shellHook = ''
           export CC=clang
           export CXX=clang++
 
-          # Formatting for the banner
           B='\033[1;34m'; C='\033[0;36m'; W='\033[1;37m'; N='\033[0m'
           CLANG_V=$($CXX --version | head -n 1 | cut -d' ' -f3)
           CMAKE_V=$(cmake --version | head -n 1 | cut -d' ' -f3)
 
           echo -e "''${B}╭──────────────────────────────────────────────────╮''${N}"
-          echo -e "''${B}│''${N}  ''${W}󱄅  Nix C++23 Development Environment  ''${W}󱄅 ''${N}          ''${B}│''${N}"
+          echo -e "''${B}│''${N}  ''${W}󱄅  Nix C++23 Development Environment ''${W}󱄅 ''${N}         ''${B}│''${N}"
           echo -e "''${B}├──────────────────────────────────────────────────┤''${N}"
           printf "''${B}│''${N}  ''${C}%-10s''${N} %-35s  ''${B}│''${N}\n" "Compiler:" "Clang ''${CLANG_V}"
           printf "''${B}│''${N}  ''${C}%-10s''${N} %-35s  ''${B}│''${N}\n" "Standard:" "C++23"
