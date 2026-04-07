@@ -1,7 +1,31 @@
+---
+Language: Cpp
 BasedOnStyle: Chromium
-IndentWidth: 2
-ColumnLimit: 80
-AllowShortFunctionsOnASingleLine: Empty
-PointerAlignment: Left
-DerivePointerAlignment: false
 Standard: Latest
+ColumnLimit: 100
+
+IndentWidth: 2
+ContinuationIndentWidth: 4
+DerivePointerAlignment: false
+PointerAlignment: Left
+
+# [ALIGN] Visual consistency for operators and brackets
+AlignAfterOpenBracket: Align
+AlignOperands: Align
+AlignTrailingComments: true
+
+# [SOLO] Force logic to new lines to simplify debugger stepping
+AllowShortFunctionsOnASingleLine: Empty
+AllowShortIfStatementsOnASingleLine: false
+AllowShortLoopsOnASingleLine: false
+
+# [INCL] Automatic header sorting and grouping
+IncludeBlocks: Regroup
+IncludeCategories:
+  - Regex:           '^<.*\.h>'
+    Priority:        1
+  - Regex:           '^<.*'
+    Priority:        2
+  - Regex:           '.*'
+    Priority:        3
+...

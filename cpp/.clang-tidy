@@ -1,8 +1,48 @@
-Checks: 'google-*,readability-identifier-naming'
+---
+Checks: >
+  -*,
+  google-*,
+  readability-identifier-naming,
+  bugprone-*,
+  performance-*,
+  modernize-make-shared,
+  modernize-use-nullptr,
+  modernize-use-emplace,
+  modernize-use-std-print,
+  modernize-use-std-numbers,
+  modernize-use-ranges,
+  modernize-type-traits
+
+WarningsAsErrors: "readability-identifier-naming, bugprone-*, performance-*"
+
 CheckOptions:
-  - { key: readability-identifier-naming.ClassMemberSuffix, value: "_" }
-  - { key: readability-identifier-naming.ClassMemberCase,   value: snake_case }
-  - { key: readability-identifier-naming.FunctionCase,      value: CamelCase }
-  - { key: readability-identifier-naming.VariableCase,      value: snake_case }
-  - { key: readability-identifier-naming.ConstantPrefix,    value: k }
-  - { key: readability-identifier-naming.ConstantCase,      value: CamelCase }
+  # [TYPE] PascalCase for Classes/Structs
+  - key:             readability-identifier-naming.ClassCase
+    value:           CamelCase
+  - key:             readability-identifier-naming.StructCase
+    value:           CamelCase
+  
+  # [FUNC] CamelCase for Functions/Methods (Google Style)
+  - key:             readability-identifier-naming.FunctionCase
+    value:           CamelCase
+  - key:             readability-identifier-naming.MethodCase
+    value:           CamelCase
+
+  # [VAR] snake_case for Variables/Parameters
+  - key:             readability-identifier-naming.VariableCase
+    value:           lower_case
+  - key:             readability-identifier-naming.ParameterCase
+    value:           lower_case
+
+  # [MEMB] snake_case with trailing underscore (e.g., weight_matrix_)
+  - key:             readability-identifier-naming.MemberCase
+    value:           lower_case
+  - key:             readability-identifier-naming.MemberSuffix
+    value:           "_"
+
+  # [CONST] kCamelCase for Constants
+  - key:             readability-identifier-naming.ConstantCase
+    value:           CamelCase
+  - key:             readability-identifier-naming.ConstantPrefix
+    value:           k
+...
