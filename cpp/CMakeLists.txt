@@ -1,56 +1,48 @@
-cmake_minimum_required(VERSION 3.31.7)
-
+cmake_minimum_required(VERSION 3.31)
 # [META] Project definition
-project(my_project LANGUAGES CXX)
-
+project(my-project LANGUAGES CXX)
 # [CXX] Language standard configuration
-set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
-
 # [TOOL] Tooling and introspection
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(CMAKE_CXX_SCAN_FOR_MODULES OFF)
-
 # [SRCS] Explicit source file manifest
-# NOTE: Add your .cpp files here as you create them
 set(SOURCES
     src/main.cpp
 )
-
 add_executable(${PROJECT_NAME} ${SOURCES})
-
+target_compile_features(${PROJECT_NAME} PRIVATE cxx_std_23)
 # [INCL] Header search paths
-target_include_directories(${PROJECT_NAME} PRIVATE 
+target_include_directories(${PROJECT_NAME} PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/include
 )
-
 # [FLAG] Core compiler options and warnings
 target_compile_options(${PROJECT_NAME} PRIVATE
     -fcolor-diagnostics
     -pedantic -Wall -Wextra -Wshadow -Wnon-virtual-dtor -Wunused
     $<$<CONFIG:Release>:-O3>
-    $<$<CONFIG:Debug>:-g -Og>
+    $<$<CONFIG:RelWithDebInfo>:-O2 -g>
+    $<$<CONFIG:Debug>:-g>
+    $<$<CONFIG:Debug>:-Og>
 )
-
 # [QUAL] Sanitizers and quality gates
-# Default to OFF for Nix/CI environments unless specified
 option(USE_SANITIZERS "Enable ASan/UBSan" ON)
-
-if(USE_SANITIZERS)
+if(USE_SANITIZERS AND CMAKE_BUILD_TYPE STREQUAL "Debug")
     if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
-        target_compile_options(${PROJECT_NAME} PRIVATE 
-            -fsanitize=address,undefined -fno-omit-frame-pointer
-        )
-        target_link_options(${PROJECT_NAME} PRIVATE 
-            -fsanitize=address,undefined
-        )
+        set(SAN_FLAGS -fsanitize=address,undefined -fno-omit-frame-pointer)
+        target_compile_options(${PROJECT_NAME} PRIVATE ${SAN_FLAGS})
+        target_link_options(${PROJECT_NAME} PRIVATE ${SAN_FLAGS})
     endif()
 endif()
-
-# [INST] Installation rules
-# Standard GNUInstallDirs for Nix compatibility
-include(GNUInstallDirs)
-install(TARGETS ${PROJECT_NAME}
-    RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+# [TEST] Testing
+enable_testing()
+include(FetchContent)
+FetchContent_Declare(
+    googletest
+    GIT_REPOSITORY https://github.com/google/googletest.git
+    GIT_TAG        v1.17.0
 )
+FetchContent_MakeAvailable(googletest)
+# [INST] Installation rules
+install(TARGETS ${PROJECT_NAME} DESTINATION bin)

@@ -23,6 +23,7 @@
         nix2containerPkgs = nix2container.packages.${system};
         pkgsArm = pkgs.pkgsCross.aarch64-multiplatform;
         python = pkgs.python313;
+        pythonArmPkgs = pkgsArm.python313Packages;
         pythonPkgs = pkgs.python313Packages;
       in {
         devShells.default = pkgs.mkShell {
@@ -35,11 +36,7 @@
             pythonPkgs.wheel
 
             pythonPkgs.numpy
-            pythonPkgs.opencv4
             pythonPkgs.pyyaml
-
-            pkgs.cmake
-            pkgs.pkg-config
           ];
 
           shellHook = ''
@@ -53,14 +50,14 @@
           '';
         };
 
-        packages.arm64.app = pkgsArm.python311Packages.buildPythonApplication {
+        packages.arm64.app = pythonArmPkgs.buildPythonApplication {
           pname = "jetson-python-app";
           version = "0.1.0";
           src = ./.;
 
           format = "pyproject";
 
-          propagatedBuildInputs = with pkgsArm.python311Packages; [
+          propagatedBuildInputs = with pythonArmPkgs; [
             numpy
             opencv4
             pyyaml

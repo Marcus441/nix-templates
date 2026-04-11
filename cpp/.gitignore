@@ -24,6 +24,7 @@ compile_commands.json
 
 # [NIX] Nix specific
 # --------------------------------------------------
+.envrc
 .direnv/
 result
 result-*
