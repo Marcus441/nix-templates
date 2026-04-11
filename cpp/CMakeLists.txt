@@ -2,7 +2,6 @@ cmake_minimum_required(VERSION 3.31)
 # [META] Project definition
 project(my-project LANGUAGES CXX)
 # [CXX] Language standard configuration
-set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 # [TOOL] Tooling and introspection
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
@@ -13,6 +12,7 @@ set(SOURCES
 )
 add_executable(${PROJECT_NAME} ${SOURCES})
 target_compile_features(${PROJECT_NAME} PRIVATE cxx_std_23)
+set_target_properties(${PROJECT_NAME} PROPERTIES CXX_EXTENSIONS OFF)
 # [INCL] Header search paths
 target_include_directories(${PROJECT_NAME} PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/include
@@ -44,5 +44,17 @@ FetchContent_Declare(
     GIT_TAG        v1.17.0
 )
 FetchContent_MakeAvailable(googletest)
+add_executable(${PROJECT_NAME}-tests
+    tests/main_test.cpp
+)
+target_compile_features(${PROJECT_NAME}-tests PRIVATE cxx_std_23)
+target_link_libraries(${PROJECT_NAME}-tests PRIVATE
+    gtest_main
+    gmock_main
+)
+target_include_directories(${PROJECT_NAME}-tests PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/include
+)
+add_test(NAME ${PROJECT_NAME}-tests COMMAND ${PROJECT_NAME}-tests)
 # [INST] Installation rules
 install(TARGETS ${PROJECT_NAME} DESTINATION bin)
