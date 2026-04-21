@@ -1,0 +1,102 @@
+---
+# Based on Chromium's production .clang-tidy — checks curated for low
+# false-positive rate against a large C++ codebase, plus C++23 naming.
+Checks: >
+  -*,
+  bugprone-argument-comment,
+  bugprone-assert-side-effect,
+  bugprone-bool-pointer-implicit-conversion,
+  bugprone-dangling-handle,
+  bugprone-forward-declaration-namespace,
+  bugprone-inaccurate-erase,
+  bugprone-redundant-branch-condition,
+  bugprone-string-constructor,
+  bugprone-string-integer-assignment,
+  bugprone-suspicious-memset-usage,
+  bugprone-suspicious-realloc-usage,
+  bugprone-terminating-continue,
+  bugprone-undefined-memory-manipulation,
+  bugprone-unique-ptr-array-mismatch,
+  bugprone-unused-raii,
+  bugprone-use-after-move,
+  bugprone-virtual-near-miss,
+  google-build-explicit-make-pair,
+  google-default-arguments,
+  google-explicit-constructor,
+  google-readability-casting,
+  google-upgrade-googletest-case,
+  misc-misleading-identifier,
+  misc-homoglyph,
+  modernize-avoid-bind,
+  modernize-concat-nested-namespaces,
+  modernize-loop-convert,
+  modernize-make-shared,
+  modernize-make-unique,
+  modernize-redundant-void-arg,
+  modernize-shrink-to-fit,
+  modernize-use-bool-literals,
+  modernize-use-default-member-init,
+  modernize-use-emplace,
+  modernize-use-equals-default,
+  modernize-use-equals-delete,
+  modernize-use-noexcept,
+  modernize-use-nullptr,
+  modernize-use-override,
+  modernize-use-std-print,
+  modernize-use-std-numbers,
+  modernize-use-ranges,
+  modernize-type-traits,
+  readability-identifier-naming,
+  readability-redundant-member-init,
+
+# Errors on things that are nearly always bugs or dangerous.
+# Naming is a warning only — fixable, not blocking.
+WarningsAsErrors: >
+  bugprone-use-after-move,
+  bugprone-unused-raii,
+  bugprone-dangling-handle,
+  bugprone-undefined-memory-manipulation,
+  bugprone-unique-ptr-array-mismatch,
+  bugprone-inaccurate-erase,
+
+CheckOptions:
+  - key: bugprone-assert-side-effect.AssertMacros
+    value: assert
+  - key: modernize-use-default-member-init.UseAssignment
+    value: 1
+  - key: modernize-use-emplace.IgnoreImplicitConstructors
+    value: 1
+
+  # [TYPE] PascalCase for Classes/Structs
+  - key: readability-identifier-naming.ClassCase
+    value: CamelCase
+  - key: readability-identifier-naming.StructCase
+    value: CamelCase
+  # [FUNC] CamelCase for Functions/Methods (Google/Chromium style)
+  - key: readability-identifier-naming.FunctionCase
+    value: CamelCase
+  - key: readability-identifier-naming.MethodCase
+    value: CamelCase
+  # [VAR] snake_case for Variables/Parameters
+  - key: readability-identifier-naming.VariableCase
+    value: lower_case
+  - key: readability-identifier-naming.ParameterCase
+    value: lower_case
+  # [MEMB] snake_case with trailing underscore
+  - key: readability-identifier-naming.MemberCase
+    value: lower_case
+  - key: readability-identifier-naming.MemberSuffix
+    value: "_"
+  # [CONST] kCamelCase for Constants
+  - key: readability-identifier-naming.ConstantCase
+    value: CamelCase
+  - key: readability-identifier-naming.ConstantPrefix
+    value: k
+  # [ENUM] PascalCase type, kCamelCase values
+  - key: readability-identifier-naming.EnumCase
+    value: CamelCase
+  - key: readability-identifier-naming.EnumConstantCase
+    value: CamelCase
+  - key: readability-identifier-naming.EnumConstantPrefix
+    value: k
+...

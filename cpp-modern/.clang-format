@@ -1,0 +1,43 @@
+---
+Language:        Cpp
+BasedOnStyle:    Chromium
+Standard:        Latest
+ColumnLimit:     100
+IndentWidth:     2
+ContinuationIndentWidth: 4
+DerivePointerAlignment:  false
+PointerAlignment: Left
+
+# [ALIGN] Visual consistency
+AlignAfterOpenBracket: Align
+AlignOperands:         Align
+AlignTrailingComments:
+  Kind:          Always
+  OverEmptyLines: 1
+
+# [SOLO] Force logic to new lines for debugger stepping and coverage
+AllowShortFunctionsOnASingleLine: Empty
+AllowShortIfStatementsOnASingleLine: false
+AllowShortLoopsOnASingleLine: false
+
+# [SPACE] Whitespace hygiene
+MaxEmptyLinesToKeep:              1
+KeepEmptyLinesAtTheStartOfBlocks: false
+SpaceBeforeRangeBasedForLoopColon: true
+
+# [CPP23] Modern C++ formatting
+RequiresClausePosition:         OwnLine
+RequiresExpressionIndentation:  OuterScope
+LambdaBodyIndentation:          Signature
+PackConstructorInitializers:    NextLine
+
+# [INCL] Header sorting — still relevant for global module fragment includes
+IncludeBlocks: Regroup
+IncludeCategories:
+  - Regex:    '^<.*\.h>'
+    Priority: 1
+  - Regex:    '^<.*'
+    Priority: 2
+  - Regex:    '.*'
+    Priority: 3
+...
