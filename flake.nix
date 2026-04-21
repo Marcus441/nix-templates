@@ -11,6 +11,10 @@
         path = ./cpp-jetson;
         description = "Dev environment for C/C++ on the Jetson platform";
       };
+      cpp-modern = {
+        path = ./cpp-modern;
+        description = "Dev environment for modern C++ with modules support";
+      };
       node = {
         path = ./node;
         description = "Dev environment for node.js";
