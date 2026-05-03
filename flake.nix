@@ -15,6 +15,10 @@
         path = ./cpp-modern;
         description = "Dev environment for modern C++ with modules support";
       };
+      dotnet = {
+        path = ./dotnet;
+        description = "Dev environment with dotnet sdk and runtime";
+      };
       node = {
         path = ./node;
         description = "Dev environment for node.js";
