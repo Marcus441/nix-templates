@@ -1,6 +1,4 @@
 ---
-# Based on Chromium's production .clang-tidy — checks curated for low
-# false-positive rate against a large C++ codebase, plus C++23 naming.
 Checks: >
   -*,
   bugprone-argument-comment,
@@ -49,8 +47,6 @@ Checks: >
   readability-identifier-naming,
   readability-redundant-member-init,
 
-# Errors on things that are nearly always bugs or dangerous.
-# Naming is a warning only — fixable, not blocking.
 WarningsAsErrors: >
   bugprone-use-after-move,
   bugprone-unused-raii,
@@ -67,32 +63,26 @@ CheckOptions:
   - key: modernize-use-emplace.IgnoreImplicitConstructors
     value: 1
 
-  # [TYPE] PascalCase for Classes/Structs
   - key: readability-identifier-naming.ClassCase
     value: CamelCase
   - key: readability-identifier-naming.StructCase
     value: CamelCase
-  # [FUNC] CamelCase for Functions/Methods (Google/Chromium style)
   - key: readability-identifier-naming.FunctionCase
     value: CamelCase
   - key: readability-identifier-naming.MethodCase
     value: CamelCase
-  # [VAR] snake_case for Variables/Parameters
   - key: readability-identifier-naming.VariableCase
     value: lower_case
   - key: readability-identifier-naming.ParameterCase
     value: lower_case
-  # [MEMB] snake_case with trailing underscore
   - key: readability-identifier-naming.MemberCase
     value: lower_case
   - key: readability-identifier-naming.MemberSuffix
     value: "_"
-  # [CONST] kCamelCase for Constants
   - key: readability-identifier-naming.ConstantCase
     value: CamelCase
   - key: readability-identifier-naming.ConstantPrefix
     value: k
-  # [ENUM] PascalCase type, kCamelCase values
   - key: readability-identifier-naming.EnumCase
     value: CamelCase
   - key: readability-identifier-naming.EnumConstantCase
