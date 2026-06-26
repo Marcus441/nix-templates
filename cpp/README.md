@@ -1,9 +1,9 @@
 # Project Name
 
-A modern C++23 project template featuring full support for C++ modules.
+A minimalist C++23 project template, configured for performance and memory safety.
 
 ## Features
-- **C++23 Modules** (`import ...;`) via Clang
+- **C++23** (via Clang)
 - **CMake & Ninja** (with `CMakePresets.json`)
 - **GoogleTest** integration
 - **Address & Undefined Behavior Sanitizers** (enabled in Debug mode)
