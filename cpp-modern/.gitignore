@@ -1,8 +1,6 @@
-# [BUILD] CMake / Ninja / Make
-# --------------------------------------------------
 build/
-/bin/
-/out/
+bin/
+out/
 *.o
 *.a
 *.so
@@ -12,8 +10,6 @@ build/
 compile_commands.json
 .ninja_*
 
-# [TOOL] Language Server & IDE (Clangd / VSCode / JetBrains)
-# --------------------------------------------------
 .cache/
 .clangd/
 .vscode/
@@ -22,15 +18,10 @@ compile_commands.json
 *.swo
 .DS_Store
 
-# [NIX] Nix specific
-# --------------------------------------------------
-.envrc
 .direnv/
 result
 result-*
 
-# [QUAL] Sanitizer & Profiling Logs
-# --------------------------------------------------
 asan.log.*
 ubsan.log.*
 gmon.out
@@ -38,7 +29,5 @@ gmon.out
 *.gcno
 *.gcov
 
-# [CONF] Local overrides (Not for version control)
-# --------------------------------------------------
 .env
 CMakeUserPresets.json
