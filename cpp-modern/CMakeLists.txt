@@ -12,14 +12,7 @@ if(NOT CMAKE_GENERATOR MATCHES "Ninja")
     message(WARNING "C++ modules require the Ninja generator.")
 endif()
 
-option(USE_SANITIZERS "Enable ASan/UBSan" ON)
-if(USE_SANITIZERS AND CMAKE_BUILD_TYPE STREQUAL "Debug")
-    if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
-        set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -fsanitize=address,undefined -fno-omit-frame-pointer")
-        set(CMAKE_EXE_LINKER_FLAGS_DEBUG "${CMAKE_EXE_LINKER_FLAGS_DEBUG} -fsanitize=address,undefined")
-        set(CMAKE_SHARED_LINKER_FLAGS_DEBUG "${CMAKE_SHARED_LINKER_FLAGS_DEBUG} -fsanitize=address,undefined")
-    endif()
-endif()
+add_library(project_configs INTERFACE)
 
 set(MODULE_SOURCES src/modules/my_module.cpp)
 
@@ -33,29 +26,26 @@ if(MODULE_SOURCES)
             BASE_DIRS ${CMAKE_CURRENT_SOURCE_DIR}/src
             FILES     ${MODULE_SOURCES}
     )
-    target_compile_options(${PROJECT_NAME}-modules PRIVATE
-        -pedantic -Wall -Wextra -Wshadow -Wnon-virtual-dtor -Wunused
-        $<$<CONFIG:Release>:-O3>
-        $<$<CONFIG:RelWithDebInfo>:-O2 -g>
-        $<$<CONFIG:Debug>:-g -Og>
-    )
+    target_link_libraries(${PROJECT_NAME}-modules INTERFACE project_configs)
 endif()
 
-add_executable(${PROJECT_NAME} src/main.cpp)
+set(SOURCES
+    src/main.cpp
+)
+
+add_executable(${PROJECT_NAME} ${SOURCES})
+
 target_compile_features(${PROJECT_NAME} PRIVATE cxx_std_23)
 set_target_properties(${PROJECT_NAME} PROPERTIES CXX_EXTENSIONS OFF)
-target_compile_options(${PROJECT_NAME} PRIVATE
-    -pedantic -Wall -Wextra -Wshadow -Wnon-virtual-dtor -Wunused
-    $<$<CONFIG:Release>:-O3>
-    $<$<CONFIG:RelWithDebInfo>:-O2 -g>
-    $<$<CONFIG:Debug>:-g -Og>
-)
+target_link_libraries(${PROJECT_NAME} PRIVATE project_configs)
+
 if(MODULE_SOURCES)
     target_link_libraries(${PROJECT_NAME} PRIVATE ${PROJECT_NAME}-modules)
 endif()
 
 enable_testing()
 include(FetchContent)
+
 FetchContent_Declare(
     googletest
     GIT_REPOSITORY https://github.com/google/googletest.git
@@ -80,21 +70,22 @@ else()
 endif()
 
 add_executable(${PROJECT_NAME}-tests tests/main_test.cpp)
-target_compile_features(${PROJECT_NAME}-tests PRIVATE cxx_std_23)
-set_target_properties(${PROJECT_NAME}-tests PROPERTIES CXX_EXTENSIONS OFF)
-target_compile_options(${PROJECT_NAME}-tests PRIVATE
-    -pedantic -Wall -Wextra -Wshadow -Wnon-virtual-dtor -Wunused
-    $<$<CONFIG:Debug>:-g -Og>
-)
-target_link_libraries(${PROJECT_NAME}-tests PRIVATE gtest_main gmock_main)
-if(MODULE_SOURCES)
-    target_link_libraries(${PROJECT_NAME}-tests PRIVATE ${PROJECT_NAME}-modules)
-endif()
+target_link_libraries(${PROJECT_NAME}-tests PRIVATE gtest_main gmock_main ${PROJECT_NAME}-modules)
 add_test(NAME ${PROJECT_NAME}-tests COMMAND ${PROJECT_NAME}-tests)
 
-install(TARGETS ${PROJECT_NAME} DESTINATION bin)
-if(MODULE_SOURCES)
-    install(TARGETS ${PROJECT_NAME}-modules
-        FILE_SET CXX_MODULES DESTINATION modules
-    )
+option(USE_SANITIZERS "Enable ASan/UBSan in Debug mode" ON)
+
+if(USE_SANITIZERS)
+    if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+        set(SAN_FLAGS $<$<CONFIG:Debug>:-fsanitize=address,undefined -fno-omit-frame-pointer>)
+        
+        target_compile_options(${PROJECT_NAME} PRIVATE ${SAN_FLAGS})
+        target_link_options(${PROJECT_NAME} PRIVATE ${SAN_FLAGS})
+        
+        target_compile_options(${PROJECT_NAME}-tests PRIVATE ${SAN_FLAGS})
+        target_link_options(${PROJECT_NAME}-tests PRIVATE ${SAN_FLAGS})
+    endif()
 endif()
+
+
+install(TARGETS ${PROJECT_NAME} DESTINATION bin)
