@@ -8,7 +8,14 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-add_executable(${PROJECT_NAME} src/main.cpp)
+set(SOURCES
+    src/main.cpp
+)
+
+add_executable(${PROJECT_NAME} ${SOURCES})
+
+target_include_directories(${PROJECT_NAME} PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/include
 
 target_compile_options(${PROJECT_NAME} PRIVATE
     -pedantic -Wall -Wextra -Wshadow -Wnon-virtual-dtor -Wunused
