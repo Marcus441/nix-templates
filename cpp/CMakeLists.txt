@@ -16,25 +16,12 @@ add_executable(${PROJECT_NAME} ${SOURCES})
 
 target_include_directories(${PROJECT_NAME} PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/include
-
-target_compile_options(${PROJECT_NAME} PRIVATE
-    -pedantic -Wall -Wextra -Wshadow -Wnon-virtual-dtor -Wunused
-    $<$<CONFIG:Release>:-O3>
-    $<$<CONFIG:RelWithDebInfo>:-O2 -g>
-    $<$<CONFIG:Debug>:-g -Og>
 )
 
-option(USE_SANITIZERS "Enable ASan/UBSan" ON)
-if(USE_SANITIZERS AND CMAKE_BUILD_TYPE STREQUAL "Debug")
-    if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
-        set(SAN_FLAGS -fsanitize=address,undefined -fno-omit-frame-pointer)
-        target_compile_options(${PROJECT_NAME} PRIVATE ${SAN_FLAGS})
-        target_link_options(${PROJECT_NAME} PRIVATE ${SAN_FLAGS})
-    endif()
-endif()
 
 enable_testing()
 include(FetchContent)
+
 FetchContent_Declare(
     googletest
     GIT_REPOSITORY https://github.com/google/googletest.git
@@ -59,11 +46,22 @@ else()
 endif()
 
 add_executable(${PROJECT_NAME}-tests tests/main_test.cpp)
-target_compile_options(${PROJECT_NAME}-tests PRIVATE
-    -pedantic -Wall -Wextra -Wshadow -Wnon-virtual-dtor -Wunused
-    $<$<CONFIG:Debug>:-g -Og>
-)
 target_link_libraries(${PROJECT_NAME}-tests PRIVATE gtest_main gmock_main)
 add_test(NAME ${PROJECT_NAME}-tests COMMAND ${PROJECT_NAME}-tests)
+
+option(USE_SANITIZERS "Enable ASan/UBSan in Debug mode" ON)
+
+if(USE_SANITIZERS)
+    if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+        set(SAN_FLAGS $<$<CONFIG:Debug>:-fsanitize=address,undefined -fno-omit-frame-pointer>)
+        
+        target_compile_options(${PROJECT_NAME} PRIVATE ${SAN_FLAGS})
+        target_link_options(${PROJECT_NAME} PRIVATE ${SAN_FLAGS})
+        
+        target_compile_options(${PROJECT_NAME}-tests PRIVATE ${SAN_FLAGS})
+        target_link_options(${PROJECT_NAME}-tests PRIVATE ${SAN_FLAGS})
+    endif()
+endif()
+
 
 install(TARGETS ${PROJECT_NAME} DESTINATION bin)
