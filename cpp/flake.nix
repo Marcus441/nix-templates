@@ -49,8 +49,7 @@
         nativeBuildInputs = with pkgs; [
           llvm_pkgs.clang-tools
           llvm_pkgs.lldb
-          gdb
-          valgrind
+          llvm_pkgs.bintools
         ];
 
         shellHook = ''
