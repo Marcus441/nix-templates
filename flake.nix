@@ -3,6 +3,9 @@
 
   outputs = {self}: {
     templates = {
+      # `nix flake init` with no -t copies templates.default
+      default = self.templates.shell;
+
       cpp = {
         path = ./cpp;
         description = "Dev environment for C/C++";
@@ -31,11 +34,14 @@
         path = ./python-jetson;
         description = "Dev Environment for Python on the jetson platform";
       };
+      shell = {
+        path = ./shell;
+        description = "Minimal dev shell to fill in";
+      };
       typst = {
         path = ./typst;
         description = "Dev environment for typst documents";
       };
     };
-    defaultTemplate = self.templates.shell;
   };
 }
