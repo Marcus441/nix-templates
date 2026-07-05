@@ -3,7 +3,9 @@
 A modern C++23 project template featuring full support for C++ modules.
 
 ## Features
-- **C++23 Modules** (`import ...;`) via Clang
+- **C++23 Modules** (`import ...;`) with interchangeable **Clang / GCC**
+  toolchains (Clang by default; both use the platform-default stdlib,
+  libstdc++ on Linux)
 - **CMake & Ninja** (with `CMakePresets.json`)
 - **GoogleTest** integration
 - **Address & Undefined Behavior Sanitizers** (enabled in Debug mode)
@@ -15,11 +17,28 @@ A modern C++23 project template featuring full support for C++ modules.
 
 ## Development Setup
 
-Enter the reproducible development shell:
+Enter the reproducible development shell (Clang):
 ```bash
 nix develop
 ```
 *(If using `direnv`, simply run `direnv allow`)*
+
+Or pick a toolchain explicitly -- `CC`/`CXX` are set by the shell, so the
+same CMake presets work in both. Module dependency scanning uses
+`clang-scan-deps` under Clang and the compiler itself under GCC (>= 14):
+```bash
+nix develop .#clang
+nix develop .#gcc
+```
+
+The Nix package builds follow the same scheme (`clang` is the default):
+```bash
+nix build           # Clang
+nix build .#gcc     # GCC
+```
+
+Both toolchains ship `clangd`, `clang-format` and `clang-tidy`; the debugger
+matches the compiler (`lldb` for Clang, `gdb` for GCC).
 
 ## Building
 
