@@ -35,16 +35,21 @@
   ],
   "testPresets": [
     {
-      "name": "debug",
+      "name": "test-base",
+      "hidden": true,
       "configurePreset": "default",
-      "configuration": "Debug",
-      "output": { "outputOnFailure": true }
+      "output": { "outputOnFailure": true },
+      "environment": { "GTEST_COLOR": "1" }
+    },
+    {
+      "name": "debug",
+      "inherits": "test-base",
+      "configuration": "Debug"
     },
     {
       "name": "release",
-      "configurePreset": "default",
-      "configuration": "Release",
-      "output": { "outputOnFailure": true }
+      "inherits": "test-base",
+      "configuration": "Release"
     }
   ]
 }
