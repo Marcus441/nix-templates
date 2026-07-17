@@ -34,6 +34,10 @@
         path = ./python-jetson;
         description = "Dev Environment for Python on the jetson platform";
       };
+      rust = {
+        path = ./rust;
+        description = "Dev environment for a minimal production-ready Rust project";
+      };
       shell = {
         path = ./shell;
         description = "Minimal dev shell to fill in";

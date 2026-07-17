@@ -1,0 +1,12 @@
+[package]
+name = "myproject"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+
+# Optimized, small, stripped binaries for production
+[profile.release]
+lto = true
+codegen-units = 1
+strip = true
