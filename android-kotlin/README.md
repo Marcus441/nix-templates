@@ -13,11 +13,12 @@ gradle assembleDebug
 
 Then make it yours:
 
-1. Pick your application id and rename the package: replace `com.example.app` in
-   `app/build.gradle.kts` (`namespace`, `applicationId`), move
-   `app/src/main/java/com/example/app` and `app/src/test/java/com/example/app`
-   to match, and update the `package` lines in the `.kt` files.
-2. Set the app name in `app/src/main/res/values/strings.xml`.
+1. Set `appName` (launcher label) and `appId` (application id / namespace) in
+   `gradle.properties` — the single place the app's identity is declared. The
+   `app_name` string resource is generated from `appName` at build time.
+2. Rename the package to match `appId`: move
+   `app/src/main/java/com/example/app` and `app/src/test/java/com/example/app`,
+   and update the `package` lines in the `.kt` files.
 3. Set the project name in `settings.gradle.kts`.
 4. Build your UI in the `App()` composable in `MainActivity.kt`.
 

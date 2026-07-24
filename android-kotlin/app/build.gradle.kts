@@ -3,16 +3,21 @@ plugins {
     id("org.jetbrains.kotlin.android")
 }
 
+val appName: String by project
+val appId: String by project
+
 android {
-    namespace = "com.example.app"
+    namespace = appId
     compileSdk = 34
 
     defaultConfig {
-        applicationId = "com.example.app"
+        applicationId = appId
         minSdk = 24
         targetSdk = 34
         versionCode = 1
         versionName = "1.0"
+
+        resValue("string", "app_name", appName)
     }
 
     buildFeatures {
