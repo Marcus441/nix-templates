@@ -25,9 +25,12 @@ Then make it yours:
 ## Dependencies
 
 - JDK 17
-- Android SDK: platform-tools, build-tools 34.0.0, platforms 33/34
-- Gradle 8.x
+- Android SDK: platform-tools, build-tools 35/36, platform 36
+- Gradle 8.x (the wrapper `./gradlew` is committed, so a system Gradle is optional)
 - (emulator testing only) an Android system image + `avdmanager`/`emulator`
+
+Dependency and plugin versions are declared in `gradle/libs.versions.toml`
+(Gradle version catalog) — bump them there.
 
 The Nix dev shell provides all of these (`gradle`, `kotlin`, `adb`, `avdmanager`,
 `emulator`, the SDK) with `ANDROID_HOME`, `ANDROID_SDK_ROOT`, `JAVA_HOME` set.
@@ -43,13 +46,10 @@ The Nix dev shell provides all of these (`gradle`, `kotlin`, `adb`, `avdmanager`
    ```
 4. Install required packages:
    ```bash
-   sdkmanager "platform-tools" "build-tools;34.0.0" "platforms;android-34" "platforms;android-33"
+   sdkmanager "platform-tools" "build-tools;36.0.0" "platforms;android-36"
    ```
-5. Generate the Gradle wrapper (one-time, requires a system Gradle install):
-   ```bash
-   gradle wrapper --gradle-version 8.14
-   ```
-   Use `./gradlew` in place of `gradle` in all commands below.
+5. Use `./gradlew` in place of `gradle` in all commands below — the wrapper is
+   committed, no system Gradle needed.
 
 ## Building
 
@@ -70,7 +70,7 @@ adb shell am start -n com.example.app/.MainActivity
 ## Running — emulator
 
 ```bash
-avdmanager create avd -n dev -k "system-images;android-34;google_apis;x86_64"
+avdmanager create avd -n dev -k "system-images;android-36;google_apis;x86_64"
 emulator -avd dev
 ```
 
@@ -89,12 +89,32 @@ On NixOS/Wayland, if the emulator fails with a Qt platform plugin error:
 QT_QPA_PLATFORM=xcb emulator -avd dev
 ```
 
+## Dev loop
+
+With a device or emulator connected:
+
+```bash
+./dev.sh
+```
+
+Watches sources and rebuilds, reinstalls, and relaunches the app on every save
+(a few seconds per cycle; app state is lost). For true hot reload with state
+preservation, open the project in Android Studio and use Live Edit.
+
 ## Testing
 
 ```bash
 gradle test                  # unit tests, non-Nix: ./gradlew test
 gradle connectedAndroidTest  # instrumented tests, requires a running device/emulator
 ```
+
+## CI
+
+GitHub Actions workflow: `.github/workflows/android.yml` (repo root). Two jobs:
+`./gradlew build` (assemble + unit tests + lint) and `connectedAndroidTest` on
+an x86_64 API 34 emulator. If you start a project from this template, copy the
+workflow into your repo and drop the `paths` filters and `working-directory`
+settings.
 
 ## Logs
 
