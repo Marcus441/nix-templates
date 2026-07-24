@@ -29,7 +29,7 @@
       # ARE available -- swap in one of those.
       androidComposition = pkgs.androidenv.composeAndroidPackages {
         cmdLineToolsVersion = "11.0";
-        toolsVersion = "26.1.1";
+        toolsVersion = null;
         platformToolsVersion = "36.0.0";
         buildToolsVersions = ["35.0.0" "36.0.0"];
         platformVersions = ["36"];
@@ -38,9 +38,7 @@
         includeSystemImages = true;
         systemImageTypes = ["google_apis"];
         abiVersions = ["x86_64"];
-        includeNDK = true;
-        ndkVersions = ["26.1.10909125"];
-        cmakeVersions = ["3.22.1"];
+        includeCmake = false;
         useGoogleAPIs = true;
       };
 
