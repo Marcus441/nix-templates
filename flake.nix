@@ -6,6 +6,10 @@
       # `nix flake init` with no -t copies templates.default
       default = self.templates.shell;
 
+      android-kotlin = {
+        path = ./android-kotlin;
+        description = "Dev environment for Android with Kotlin and Jetpack Compose (nixpkgs androidenv)";
+      };
       cpp = {
         path = ./cpp;
         description = "Dev environment for C/C++";

@@ -1,0 +1,43 @@
+.gradle/
+build/
+app/build/
+**/build/
+gradle-app.setting
+!gradle-wrapper.jar
+!gradle-wrapper.properties
+
+local.properties
+
+# Android Studio / IntelliJ
+.idea/
+*.iml
+*.ipr
+*.iws
+.navigation/
+captures/
+.externalNativeBuild/
+.cxx/
+
+# Kotlin
+.kotlin/
+
+# Android
+*.apk
+*.aab
+*.ap_
+*.dex
+output-metadata.json
+
+
+*.avd/
+
+# Nix
+result
+result-*
+.direnv/
+
+# OS cruft
+.DS_Store
+Thumbs.db
+
+*.log
