@@ -31,8 +31,8 @@
         cmdLineToolsVersion = "11.0";
         toolsVersion = "26.1.1";
         platformToolsVersion = "36.0.0";
-        buildToolsVersions = ["34.0.0"];
-        platformVersions = ["33" "34"];
+        buildToolsVersions = ["35.0.0" "36.0.0"];
+        platformVersions = ["36"];
         includeEmulator = true;
         emulatorVersion = "37.1.7";
         includeSystemImages = true;
