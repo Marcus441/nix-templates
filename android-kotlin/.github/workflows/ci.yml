@@ -1,19 +1,9 @@
-name: Android CI
+name: CI
 
 on:
   push:
     branches: [main]
-    paths:
-      - "android-kotlin/**"
-      - ".github/workflows/android.yml"
   pull_request:
-    paths:
-      - "android-kotlin/**"
-      - ".github/workflows/android.yml"
-
-defaults:
-  run:
-    working-directory: android-kotlin
 
 jobs:
   build:
@@ -47,5 +37,4 @@ jobs:
         with:
           api-level: 34
           arch: x86_64
-          working-directory: android-kotlin
           script: ./gradlew connectedAndroidTest

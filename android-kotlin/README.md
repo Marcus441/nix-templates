@@ -110,11 +110,9 @@ gradle connectedAndroidTest  # instrumented tests, requires a running device/emu
 
 ## CI
 
-GitHub Actions workflow: `.github/workflows/android.yml` (repo root). Two jobs:
-`./gradlew build` (assemble + unit tests + lint) and `connectedAndroidTest` on
-an x86_64 API 34 emulator. If you start a project from this template, copy the
-workflow into your repo and drop the `paths` filters and `working-directory`
-settings.
+GitHub Actions workflow: `.github/workflows/ci.yml`. Two jobs: `./gradlew build`
+(assemble + unit tests + lint) and `connectedAndroidTest` on an x86_64 API 34
+emulator. Works as-is in a repo created from this template.
 
 ## Logs
 
