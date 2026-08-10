@@ -1,71 +1,52 @@
-# -------------------------------------------
+# Nix
+result
+result-*
+.direnv/
+.nix-gc-root/
+
 # Python
-# -------------------------------------------
 __pycache__/
 *.pyc
 *.pyo
 *.pyd
-*.swp
-*.swo
-*.ruff_cache/
-.mypy_cache/
-.pytest_cache/
 *.egg-info/
 *.dist-info/
+.mypy_cache/
+.pytest_cache/
+.ruff_cache/
 
-# Virtual environments (even if you're using nix, other devs might not)
+# Virtual environments — nix covers you, other people on the project may not use it
 venv/
 env/
 .venv/
 
-# -------------------------------------------
-# Build artifacts
-# -------------------------------------------
+# Build output
 build/
 dist/
-*.so          
+*.so
 *.a
 *.o
 
-# -------------------------------------------
-# Jetson / CUDA / TensorRT / Deep Learning
-# -------------------------------------------
-
-# TensorRT engine files (HUGE binary blobs)
+# TensorRT engines and model weights — large binaries that do not belong in git
 *.engine
 *.plan
-
-# ONNX / weights
 *.onnx
 *.pb
 *.pth
 *.pt
 *.tflite
 
-# Jetson-specific generated CUDA kernels
+# CUDA build products and caches
 *.cu.cpp
 *.cubin
 *.fatbin
-*.cache/
+.cache/
 
-# Torch CUDA cache
-~/.cache/torch_extensions/
-
-# NVIDIA CUDA compiler cache
-~/.nv/ComputeCache/
-
-# -------------------------------------------
-# Nix
-# -------------------------------------------
-result
-.nix-gc-root/
-.direnv/
-.cache/nix/
-
-# -------------------------------------------
-# Editor / OS
-# -------------------------------------------
-*.log
-.DS_Store
+# Editors / OS
 .vscode/
 .idea/
+*.swp
+*.swo
+.DS_Store
+
+*.log

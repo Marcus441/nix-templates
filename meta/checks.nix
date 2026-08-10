@@ -13,6 +13,12 @@
 
     canonicalUrl = ''nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable"'';
 
+    # `nix build` and `direnv allow` leave droppings in every generated project,
+    # whatever the language, so this block is the one part of a .gitignore that
+    # has no business differing between templates. Escaped rather than an
+    # indented string so the exact four lines are visible here.
+    nixGitignoreBlock = "# Nix\nresult\nresult-*\n.direnv/";
+
     # Directories that are repository machinery rather than templates.
     notTemplates = ["meta" "scripts" "docs"];
 
@@ -157,6 +163,8 @@
       # Inv. 6. Enforcing: every template ships the same five things, so a
       # consumer never has to wonder whether this one happens to have a README.
       template-hygiene = pkgs.runCommand "check-template-hygiene" {} ''
+        # Single-quoted so nothing in it is expanded; compared against head -4.
+        expected_nix_block='${nixGitignoreBlock}'
         missing=0
         ${lib.concatMapStringsSep "\n" (n: ''
             for f in .editorconfig .envrc .gitignore README.md; do
@@ -169,10 +177,15 @@
               echo "  ${n}: flake.nix has no description" >&2
               missing=$((missing + 1))
             fi
+            if [ "$(head -n 4 ${root + "/${n}"}/.gitignore)" != "$expected_nix_block" ]; then
+              echo "  ${n}: .gitignore does not open with the Nix block" >&2
+              missing=$((missing + 1))
+            fi
           '')
           names}
         if [ $missing -ne 0 ]; then
-          echo "template-hygiene: $missing missing (Inv. 6)" >&2
+          echo "template-hygiene: $missing problem(s) (Inv. 6)" >&2
+          printf '%s\n' "every template .gitignore must open with:" "$expected_nix_block" >&2
           exit 1
         fi
         touch "$out"

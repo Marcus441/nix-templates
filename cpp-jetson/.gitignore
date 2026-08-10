@@ -1,5 +1,28 @@
-# C++ gitignore
+# Nix
 result
-/build/*
-!/build/.gitkeep
-.cache
+result-*
+.direnv/
+
+# Build output
+build/
+bin/
+out/
+*.o
+*.a
+*.so
+*.exe
+*.elf
+compile_commands.json
+.ninja_*
+CMakeUserPresets.json
+
+# Editors / OS
+.cache/
+.clangd/
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+
+.env

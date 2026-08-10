@@ -1,3 +1,10 @@
+# Nix
+result
+result-*
+.direnv/
+
+# Build output
+Testing/
 build/
 bin/
 out/
@@ -9,7 +16,17 @@ out/
 *.elf
 compile_commands.json
 .ninja_*
+CMakeUserPresets.json
 
+# Sanitizers and coverage
+asan.log.*
+ubsan.log.*
+gmon.out
+*.gcda
+*.gcno
+*.gcov
+
+# Editors / OS
 .cache/
 .clangd/
 .vscode/
@@ -18,16 +35,4 @@ compile_commands.json
 *.swo
 .DS_Store
 
-.direnv/
-result
-result-*
-
-asan.log.*
-ubsan.log.*
-gmon.out
-*.gcda
-*.gcno
-*.gcov
-
 .env
-CMakeUserPresets.json

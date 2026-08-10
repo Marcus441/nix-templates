@@ -1,13 +1,16 @@
+# Nix
+result
+result-*
+.direnv/
+
+# Cargo
 /target
 
+# Editors / OS
 .vscode/
 .idea/
 *.swp
 *.swo
 .DS_Store
-
-.direnv/
-result
-result-*
 
 .env

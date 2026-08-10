@@ -1,4 +1,18 @@
-node_modules
-dist
+# Nix
+result
+result-*
+.direnv/
+
+# Node
+node_modules/
+dist/
+
+# Editors / OS
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+
 .env
 *.log

@@ -1,22 +1,17 @@
+# Nix
+result
+result-*
+.direnv/
+
+# Gradle
 .gradle/
 build/
 app/build/
 **/build/
 gradle-app.setting
+local.properties
 !gradle-wrapper.jar
 !gradle-wrapper.properties
-
-local.properties
-
-# Android Studio / IntelliJ
-.idea/
-*.iml
-*.ipr
-*.iws
-.navigation/
-captures/
-.externalNativeBuild/
-.cxx/
 
 # Kotlin
 .kotlin/
@@ -26,17 +21,18 @@ captures/
 *.aab
 *.ap_
 *.dex
+*.avd/
 output-metadata.json
 
-
-*.avd/
-
-# Nix
-result
-result-*
-.direnv/
-
-# OS cruft
+# Editors / OS
+.idea/
+*.iml
+*.ipr
+*.iws
+.navigation/
+captures/
+.externalNativeBuild/
+.cxx/
 .DS_Store
 Thumbs.db
 
