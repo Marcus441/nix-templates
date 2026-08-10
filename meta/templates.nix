@@ -6,7 +6,6 @@
       description = "Dev environment for Android with Kotlin and Jetpack Compose (nixpkgs androidenv)";
       tier = "eval";
       locked = true;
-      unfree = true;
       systems = ["x86_64-linux"];
       reason = "unfree Android SDK, and a gradle build needs network";
     };
@@ -21,7 +20,6 @@
       description = "Dev environment for C/C++ on the Jetson platform";
       tier = "eval";
       locked = true;
-      unfree = true;
       broken = true;
       reason = "packages.arm64.app is a nested attrset, which the flake schema rejects (issue #1)";
     };
@@ -35,30 +33,28 @@
     dotnet = {
       description = "Dev environment with dotnet sdk and runtime";
       tier = "shell";
-      unfree = true;
       smoke = ["dotnet --version"];
       reason = "packages.default needs a project scaffolded by the user, plus a generated nix/deps.nix";
     };
 
     node = {
-      description = "Dev environment for node.js";
+      description = "Dev environment for Node.js";
       tier = "shell";
       smoke = ["node --version" "npm --version"];
       reason = "dev-shell-only template; there is no package output to build";
     };
 
     node-rest-api = {
-      description = "Dev environment for a node.js rest api";
+      description = "Dev environment for a Node.js REST API";
       tier = "shell";
       smoke = ["node --version" "npm --version"];
       reason = "dev-shell-only template; there is no package output to build";
     };
 
     python-jetson = {
-      description = "Dev Environment for Python on the jetson platform";
+      description = "Dev environment for Python on the Jetson platform";
       tier = "eval";
       locked = true;
-      unfree = true;
       broken = true;
       reason = "packages.arm64.app is a nested attrset, and pyproject.toml is empty (issue #1)";
     };
@@ -76,7 +72,7 @@
     };
 
     typst = {
-      description = "Dev environment for typst documents";
+      description = "Dev environment for Typst documents";
       tier = "shell";
       smoke = ["typst --version"];
       reason = "dev-shell-only template; there is no package output to build";

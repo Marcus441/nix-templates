@@ -8,8 +8,8 @@ gradle_cmd=$(command -v gradle || echo ./gradlew)
 
 adb wait-for-device
 "$gradle_cmd" --continuous installDebug 2>&1 | while IFS= read -r line; do
-    printf '%s\n' "$line"
-    if [[ "$line" == *"BUILD SUCCESSFUL"* ]]; then
-        adb shell am start -n "$app_id/.MainActivity"
-    fi
+  printf '%s\n' "$line"
+  if [[ $line == *"BUILD SUCCESSFUL"* ]]; then
+    adb shell am start -n "$app_id/.MainActivity"
+  fi
 done

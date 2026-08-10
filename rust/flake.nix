@@ -1,44 +1,51 @@
 {
-  description = "A minimal production-ready Rust template";
+  description = "Dev environment for a minimal production-ready Rust project";
 
   inputs = {
     nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable";
-    flake-utils.url = "github:numtide/flake-utils";
   };
 
   outputs = {
     self,
     nixpkgs,
-    flake-utils,
     ...
-  }:
-    flake-utils.lib.eachDefaultSystem (system: let
-      pkgs = import nixpkgs {inherit system;};
-      project = "myproject";
-    in {
-      # `cargo test` runs in the checkPhase by default
-      packages.default = pkgs.rustPlatform.buildRustPackage {
+  }: let
+    systems = ["x86_64-linux" "aarch64-linux" "aarch64-darwin"];
+    forAllSystems = f:
+      nixpkgs.lib.genAttrs systems (
+        system: f (import nixpkgs {inherit system;})
+      );
+
+    project = "myproject";
+  in {
+    packages = forAllSystems (pkgs: {
+      default = pkgs.rustPlatform.buildRustPackage {
         pname = project;
         version = "0.1.0";
         src = ./.;
         cargoLock.lockFile = ./Cargo.lock;
 
-        # for crates that link system C libraries: pkg-config finds them,
-        # the libraries themselves go in buildInputs
-        nativeBuildInputs = with pkgs; [pkg-config];
-        buildInputs = with pkgs; [];
-      };
+        nativeBuildInputs = [pkgs.pkg-config];
+        buildInputs = [];
 
-      devShells.default = pkgs.mkShell {
-        name = "${project}-shell";
-        inputsFrom = [self.packages.${system}.default];
-        nativeBuildInputs = with pkgs; [
-          clippy
-          rustfmt
-          rust-analyzer
-          gdb
+        meta.mainProgram = project;
+      };
+    });
+
+    devShells = forAllSystems (pkgs: {
+      default = pkgs.mkShell {
+        name = "rust";
+        inputsFrom = [self.packages.${pkgs.system}.default];
+        packages = [
+          pkgs.clippy
+          pkgs.rustfmt
+          pkgs.rust-analyzer
+          pkgs.gdb
         ];
         env.RUST_BACKTRACE = "1";
       };
     });
+
+    formatter = forAllSystems (pkgs: pkgs.alejandra);
+  };
 }

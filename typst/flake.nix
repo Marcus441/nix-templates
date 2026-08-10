@@ -1,22 +1,20 @@
 {
-  description = "Typst document environment with font plumbing";
+  description = "Dev environment for Typst documents";
+
   inputs = {
     nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable";
-    flake-utils.url = "github:numtide/flake-utils";
   };
 
-  outputs = {
-    nixpkgs,
-    flake-utils,
-    ...
-  }:
-    flake-utils.lib.eachDefaultSystem (system: let
-      pkgs = import nixpkgs {inherit system;};
-      # import any fonts in here
-      fonts = with pkgs; [
-        font-awesome
-      ];
-      fontConf = pkgs.makeFontsConf {
+  outputs = {nixpkgs, ...}: let
+    systems = ["x86_64-linux" "aarch64-linux" "aarch64-darwin"];
+    forAllSystems = f:
+      nixpkgs.lib.genAttrs systems (
+        system: f (import nixpkgs {inherit system;})
+      );
+  in {
+    devShells = forAllSystems (pkgs: let
+      fonts = [pkgs.font-awesome];
+      fontsConf = pkgs.makeFontsConf {
         fontDirectories = [
           (pkgs.linkFarm "fonts" (map (f: {
               inherit (f) name;
@@ -26,22 +24,13 @@
         ];
       };
     in {
-      devShells.default = pkgs.mkShell {
-        name = "Typst shell";
-
-        buildInputs = [pkgs.typst] ++ fonts;
-
-        FONTCONFIG_FILE = fontConf;
-
-        shellHook = ''
-          echo "╔═══════════════════════════════╗"
-          echo "║  🖋 Typst Development Shell 🖋  ║"
-          echo "╚═══════════════════════════════╝"
-          echo "Run 'typst --help' to get started!"
-          echo
-          echo "Checking fonts available to Typst..."
-          typst fonts | grep -E "Source|Roboto|Awesome" || echo "⚠️  Fonts not detected!"
-        '';
+      default = pkgs.mkShellNoCC {
+        name = "typst";
+        packages = [pkgs.typst] ++ fonts;
+        env.FONTCONFIG_FILE = "${fontsConf}";
       };
     });
+
+    formatter = forAllSystems (pkgs: pkgs.alejandra);
+  };
 }

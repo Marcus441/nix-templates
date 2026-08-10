@@ -19,6 +19,14 @@
     # indented string so the exact four lines are visible here.
     nixGitignoreBlock = "# Nix\nresult\nresult-*\n.direnv/";
 
+    # The `systems` line a template's flake.nix must carry, rendered from the
+    # registry so the two cannot drift. Indentation included: it is a whole-line
+    # match, which is the cheapest way to also pin the formatting.
+    systemsLine = n:
+      "    systems = ["
+      + lib.concatMapStringsSep " " (s: ''"${s}"'') templates.${n}.systems
+      + "];";
+
     # Directories that are repository machinery rather than templates.
     notTemplates = ["meta" "scripts" "docs"];
 
@@ -122,25 +130,49 @@
         names
       );
 
-      # Inv. 5. Three spellings of one URL teach three idioms for no reason.
-      nixpkgs-pin = pkgs.runCommand "check-nixpkgs-pin" {} ''
+      # Inv. 4 and Inv. 5. One URL spelling, one system-iteration idiom, and a
+      # `systems` list that says the same thing the registry does — a template
+      # that claims a system the registry excludes is untested by construction.
+      flake-inputs = pkgs.runCommand "check-flake-inputs" {} ''
         # Single-quoted: canonicalUrl contains double quotes of its own.
         expected='${canonicalUrl}'
         fail=0
         ${lib.concatMapStringsSep "\n" (n: ''
             found=$(grep -oE 'nixpkgs\.url = "[^"]*"' ${root + "/${n}/flake.nix"} | head -1 || true)
             if [ "$found" != "$expected" ]; then
-              echo "  ${n}: $found" >&2
+              echo "  ${n}: nixpkgs pinned as $found" >&2
+              fail=1
+            fi
+            if grep -q 'flake-utils' ${root + "/${n}/flake.nix"}; then
+              echo "  ${n}: uses flake-utils; iterate systems with nixpkgs.lib.genAttrs" >&2
+              fail=1
+            fi
+            if ! grep -qxF '${systemsLine n}' ${root + "/${n}/flake.nix"}; then
+              echo "  ${n}: flake does not declare ${systemsLine n}" >&2
               fail=1
             fi
           '')
           names}
         if [ $fail -ne 0 ]; then
-          echo "nixpkgs-pin: expected $expected" >&2
+          echo "flake-inputs: see .claude/rules/template-flake-conventions.md" >&2
           exit 1
         fi
         touch "$out"
       '';
+
+      # `nix flake init -t` prints the registry's description and the consumer
+      # then reads the flake's. Two sentences for one template is one too many.
+      description-agrees = decided "description-agrees" (
+        lib.concatMap (
+          n: let
+            inFlake = descriptionOf n;
+            inRegistry = templates.${n}.description;
+          in
+            lib.optional (inFlake != null && inFlake != inRegistry)
+            "'${n}': flake says \"${inFlake}\", registry says \"${inRegistry}\""
+        )
+        names
+      );
 
       # Without the ellipsis, adding any input is a breaking change for every
       # project generated from the template.

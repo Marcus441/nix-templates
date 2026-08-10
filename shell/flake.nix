@@ -1,21 +1,24 @@
 {
-  description = "Minimal dev shell";
+  description = "Minimal dev shell to fill in";
 
   inputs = {
     nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable";
-    flake-utils.url = "github:numtide/flake-utils";
   };
 
-  outputs = {
-    nixpkgs,
-    flake-utils,
-    ...
-  }:
-    flake-utils.lib.eachDefaultSystem (system: let
-      pkgs = import nixpkgs {inherit system;};
-    in {
-      devShells.default = pkgs.mkShell {
-        packages = with pkgs; [];
+  outputs = {nixpkgs, ...}: let
+    systems = ["x86_64-linux" "aarch64-linux" "aarch64-darwin"];
+    forAllSystems = f:
+      nixpkgs.lib.genAttrs systems (
+        system: f (import nixpkgs {inherit system;})
+      );
+  in {
+    devShells = forAllSystems (pkgs: {
+      default = pkgs.mkShell {
+        name = "shell";
+        packages = [];
       };
     });
+
+    formatter = forAllSystems (pkgs: pkgs.alejandra);
+  };
 }
