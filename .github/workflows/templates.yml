@@ -1,0 +1,121 @@
+# CI for THIS repository.
+#
+# android-kotlin/.github/workflows/ci.yml is not this — it is payload, shipped
+# inside the template so generated projects inherit it. GitHub only runs
+# workflows from the repository root, so it has never run here. Do not
+# consolidate them.
+name: templates
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  # Eight templates ship unlocked, so upstream nixpkgs can break one with no
+  # commit in this repository. Without this, the first to find out is a
+  # consumer running `nix flake init`.
+  schedule:
+    - cron: "17 5 * * 1"
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  static:
+    name: static checks
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: DeterminateSystems/nix-installer-action@main
+      - uses: nix-community/cache-nix-action@v6
+        with:
+          primary-key: nix-static-${{ hashFiles('flake.lock', 'meta/**') }}
+          restore-prefixes-first-match: nix-static-
+          gc-max-store-size: 2G
+      - run: nix flake check --print-build-logs
+
+  registry:
+    name: registry
+    needs: static
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.gen.outputs.matrix }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: DeterminateSystems/nix-installer-action@main
+      # The matrix comes from the registry, never from a hand-written list —
+      # meta/templates.nix is the single source of truth (CLAUDE.md Inv. 2).
+      # nix-github-actions is deliberately not used: it derives a matrix from
+      # `checks`, and our checks are static and say nothing about templates.
+      - id: gen
+        run: |
+          json=$(cat "$(nix build --no-link --print-out-paths .#registry-json)")
+          matrix=$(jq -c '[to_entries[]
+                           | select(.value.systems | index("x86_64-linux"))
+                           | {name: .key, tier: .value.tier}]' <<<"$json")
+          echo "matrix=$matrix" >>"$GITHUB_OUTPUT"
+
+          {
+            echo "### Not tested on x86_64-linux"
+            echo
+            jq -r 'to_entries[]
+                   | select(.value.systems | index("x86_64-linux") | not)
+                   | "- **\(.key)** — \(.value.reason // "no reason given")"' <<<"$json"
+          } >>"$GITHUB_STEP_SUMMARY"
+
+  template:
+    name: ${{ matrix.name }} (${{ matrix.tier }})
+    needs: registry
+    runs-on: ubuntu-latest
+    strategy:
+      # One drifting template must not hide the state of the other ten.
+      fail-fast: false
+      matrix:
+        include: ${{ fromJSON(needs.registry.outputs.matrix) }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: DeterminateSystems/nix-installer-action@main
+      # Everything here comes from cache.nixos.org, so the cost is download,
+      # which the Actions store cache removes. Cachix would need a secret and
+      # would break fork PRs for no benefit.
+      - uses: nix-community/cache-nix-action@v6
+        with:
+          primary-key: nix-${{ matrix.name }}-${{ hashFiles(format('{0}/flake.nix', matrix.name), format('{0}/flake.lock', matrix.name)) }}
+          restore-prefixes-first-match: nix-${{ matrix.name }}-
+          gc-max-store-size: 4G
+          purge: true
+          purge-prefixes: nix-${{ matrix.name }}-
+          purge-created: 604800
+      - run: ./scripts/test-template.sh ${{ matrix.name }}
+
+  drift:
+    name: report drift
+    needs: [static, registry, template]
+    if: always() && github.event_name == 'schedule' && contains(needs.*.result, 'failure')
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+    steps:
+      - env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          RUN: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        # Nobody watches a badge on a templates repository.
+        run: |
+          existing=$(gh issue list --repo "$REPO" --label drift --state open \
+            --limit 1 --json number --jq '.[0].number // empty')
+          if [ -n "$existing" ]; then
+            gh issue comment "$existing" --repo "$REPO" --body "Scheduled run failed again: $RUN"
+          else
+            gh issue create --repo "$REPO" --label drift \
+              --title "scheduled template run failed ($(date -u +%F))" \
+              --body "An unlocked template stopped working with no commit in this repository.
+
+          Run: $RUN
+
+          Triage before editing — \`.claude/skills/test-template/SKILL.md\`. Re-run
+          against a known-good nixpkgs rev to tell upstream drift from a template
+          bug. The fix belongs in the template, never in the harness, and never by
+          lowering a tier."
+          fi
