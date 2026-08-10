@@ -1,12 +1,12 @@
 # node-rest-api
 
-Node.js REST API dev shell — Express 5, TypeScript, and a middleware layout
-that is already wired up.
+Dev environment for a Node.js REST API — Express 5, TypeScript, and a middleware
+layout that is already wired up.
 
 ```bash
 nix flake init -t github:Marcus441/nix-templates#node-rest-api
 git init && git add -A     # flakes see only tracked files
-nix develop
+nix develop                # or: direnv allow
 npm install
 npm run dev
 ```
@@ -28,19 +28,26 @@ Dependencies: `express`, `cors`, `dotenv`, `jsonwebtoken`,
 `express-fileupload`. Dev: `vitest` with v8 coverage, `supertest`, `tsx`,
 `nodemon`.
 
-## Scripts
+## Building
 
-| | |
-| --- | --- |
-| `npm run dev` | `tsx src/index.ts` — run without a build step |
-| `npm start` | `nodemon`, config in `nodemon.json` |
-| `npm run build` | `tsc` to `dist/` via `tsconfig.build.json` |
-| `npm test` | `vitest --coverage` |
+```bash
+npm run build      # tsc -> dist/, via tsconfig.build.json
+npm run dev        # tsx src/index.ts, no build step
+npm start          # nodemon, config in nodemon.json
+```
+
+## Testing
+
+```bash
+npm test           # vitest --coverage
+```
 
 ## Notes
 
 - Middleware order matters: `routeNotFound` must stay registered last, and
   `errorHandler` after the routes it catches for.
-- There is no `packages` output; this template is a dev shell only.
-- `nodejs_24` provides `node`, `npm` and `npx`. Change the major on one line in
-  `flake.nix`.
+- npm ships inside the `nodejs` derivation; there is no separate package for it.
+  Change the Node major on one line in `flake.nix`.
+- `.envrc` adds `node_modules/.bin` to `PATH`, so locally-installed CLIs resolve
+  without `npx`.
+- `nix fmt` formats `flake.nix` with alejandra.

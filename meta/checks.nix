@@ -213,6 +213,14 @@
               echo "  ${n}: .gitignore does not open with the Nix block" >&2
               missing=$((missing + 1))
             fi
+            if [ "$(head -n 1 ${root + "/${n}"}/README.md)" != '# ${n}' ]; then
+              echo "  ${n}: README.md does not open with '# ${n}'" >&2
+              missing=$((missing + 1))
+            fi
+            if ! grep -q '^## Building$' ${root + "/${n}"}/README.md; then
+              echo "  ${n}: README.md has no '## Building' section" >&2
+              missing=$((missing + 1))
+            fi
           '')
           names}
         if [ $missing -ne 0 ]; then

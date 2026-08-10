@@ -1,13 +1,14 @@
-# Android Kotlin Template
+# android-kotlin
 
-Starter for an Android app: Kotlin + Jetpack Compose (Material 3), built with Gradle.
-Ships a single `MainActivity` with a hello-world Compose screen and one sample unit
-test — start adding your own code instead of deleting someone else's.
-
-## Quick start
+Dev environment for Android with Kotlin and Jetpack Compose (nixpkgs
+androidenv). Ships a single `MainActivity` with a hello-world Compose screen
+(Material 3) and one sample unit test — start adding your own code instead of
+deleting someone else's.
 
 ```bash
-nix develop          # or `direnv allow` if using direnv
+nix flake init -t github:Marcus441/nix-templates#android-kotlin
+git init && git add -A     # flakes see only tracked files
+nix develop                # or: direnv allow
 gradle assembleDebug
 ```
 
@@ -22,23 +23,27 @@ Then make it yours:
 3. Set the project name in `settings.gradle.kts`.
 4. Build your UI in the `App()` composable in `MainActivity.kt`.
 
-## Dependencies
+## What you get
 
 - JDK 17
 - Android SDK: platform-tools, build-tools 35/36, platform 36
-- Gradle 8.x (the wrapper `./gradlew` is committed, so a system Gradle is optional)
-- (emulator testing only) an Android system image + `avdmanager`/`emulator`
+- Gradle 8.x (the wrapper `./gradlew` is committed, so a system Gradle is
+  optional)
+- for emulator testing, an Android system image plus `avdmanager` / `emulator`
 
-Dependency and plugin versions are declared in `gradle/libs.versions.toml`
-(Gradle version catalog) — bump them there.
+The dev shell provides all of these with `ANDROID_HOME`, `ANDROID_SDK_ROOT` and
+`JAVA_HOME` set. Dependency and plugin versions are declared in
+`gradle/libs.versions.toml` (Gradle version catalog) — bump them there.
 
-The Nix dev shell provides all of these (`gradle`, `kotlin`, `adb`, `avdmanager`,
-`emulator`, the SDK) with `ANDROID_HOME`, `ANDROID_SDK_ROOT`, `JAVA_HOME` set.
+This template is `x86_64-linux` only. The `systems` list in `flake.nix` says so,
+and the emulator image is built for `x86_64`.
 
 ## Setup (non-Nix)
 
 1. Install JDK 17.
-2. Install the Android SDK via [command-line tools](https://developer.android.com/studio#command-tools) or Android Studio's SDK Manager.
+2. Install the Android SDK via
+   [command-line tools](https://developer.android.com/studio#command-tools) or
+   Android Studio's SDK Manager.
 3. Set env vars:
    ```bash
    export ANDROID_HOME=/path/to/android-sdk
@@ -58,6 +63,9 @@ gradle assembleDebug        # non-Nix: ./gradlew assembleDebug
 ```
 
 APK output: `app/build/outputs/apk/debug/app-debug.apk`
+
+There is no `nix build` for this template: a Gradle build resolves dependencies
+over the network, which a Nix build sandbox does not have.
 
 ## Running — physical device
 
@@ -105,7 +113,7 @@ preservation, open the project in Android Studio and use Live Edit.
 
 ```bash
 gradle test                  # unit tests, non-Nix: ./gradlew test
-gradle connectedAndroidTest  # instrumented tests, requires a running device/emulator
+gradle connectedAndroidTest  # instrumented tests, needs a device/emulator
 ```
 
 ## CI
@@ -119,3 +127,17 @@ emulator. Works as-is in a repo created from this template.
 ```bash
 adb logcat
 ```
+
+## Notes
+
+- **`ANDROID_HOME` points straight into the Nix store, and that is fine.**
+  Everything here is read from by Gradle, adb, avdmanager and the emulator, and
+  never written to, so an immutable path works. `avdmanager` writes AVD configs
+  to `~/.android/avd`, outside the SDK tree.
+- **Licence acceptance is a nixpkgs config option**, `android_sdk.accept_license`,
+  not an argument to `composeAndroidPackages`. It is set inside the flake
+  alongside `allowUnfree`, so no `--impure` is needed.
+- If you bump a version in `composeAndroidPackages` and it is not in this
+  nixpkgs revision's manifest, `nix develop` errors with a message listing the
+  versions that *are* available — pick one of those.
+- `nix fmt` formats `flake.nix` with alejandra.
