@@ -154,12 +154,12 @@
         touch "$out"
       '';
 
-      # Inv. 6. Enforcing: every template ships the same four things, so a
+      # Inv. 6. Enforcing: every template ships the same five things, so a
       # consumer never has to wonder whether this one happens to have a README.
       template-hygiene = pkgs.runCommand "check-template-hygiene" {} ''
         missing=0
         ${lib.concatMapStringsSep "\n" (n: ''
-            for f in .envrc .gitignore README.md; do
+            for f in .editorconfig .envrc .gitignore README.md; do
               if [ ! -e ${root + "/${n}"}/"$f" ]; then
                 echo "  ${n}: missing $f" >&2
                 missing=$((missing + 1))
