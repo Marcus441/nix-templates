@@ -30,6 +30,12 @@
       smoke = ["cmake --version" "clangd --version"];
     };
 
+    cpp-prod = {
+      description = "Dev environment for production C/C++";
+      tier = "build";
+      smoke = ["cmake --version" "clangd --version" "clang-tidy --version" "gcovr --version"];
+    };
+
     cpp-simple = {
       description = "Dev environment for learning C++ with a plain Makefile";
       tier = "build";
