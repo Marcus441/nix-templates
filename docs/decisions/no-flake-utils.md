@@ -38,7 +38,10 @@ reference would dangle in every generated project.
 
 **Rejected: flake-parts inside a template.** Inv. 4. The registry uses it; a
 generated project should not inherit a framework it did not ask for, and a
-template has to be readable by someone who has never seen this repo.
+template has to be readable by someone who has never seen this repo. The same
+invariant, and the same clause of `checks.flake-inputs`, also bans import-tree,
+devenv and snowfall — `docs/decisions/devenv.md` argues the devenv case, which
+is the one that gets re-raised.
 
 **Rejected: keeping flake-utils and switching to `eachSystem` with an explicit
 list.** It fixes the system-list problem but keeps the input, which was the

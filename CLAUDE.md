@@ -32,7 +32,8 @@ deliberately not. The reasoning is in §2 — do not "fix" the inconsistency.
    list written out and checked against the registry. Never introduce
    `flake-utils`, flake-parts, import-tree, devenv or snowfall *into a
    template*. A template must be readable by someone who has never seen this
-   repo. Checked; `docs/decisions/no-flake-utils.md`.
+   repo. All five are checked; `docs/decisions/no-flake-utils.md`,
+   `docs/decisions/devenv.md`.
 5. **One nixpkgs spelling:** `github:nixos/nixpkgs/nixos-unstable`. Checked.
 6. **Every template ships `.editorconfig`, `.envrc`, `.gitignore`, `README.md`
    and a `description`.** The `.gitignore` opens with the four-line Nix block;
@@ -181,7 +182,7 @@ items are deleted and survivors keep their numbers.
 
 | Anti-pattern | Why |
 | --- | --- |
-| flake-utils / flake-parts / import-tree inside a template | Inv. 4 — a template must read standalone, on one input |
+| flake-utils / flake-parts / import-tree / devenv / snowfall inside a template | Inv. 4 — a template must read standalone, on one input. Checked |
 | A comment in a template's `flake.nix` | It belongs in that template's README — `.claude/rules/template-flake-conventions.md` |
 | A `shellHook` that only prints a banner | A subprocess on every `nix develop` and every direnv reload, for what the README already says |
 | `buildInputs` / `nativeBuildInputs` in a `mkShell`, or a bare `FOO = "…"` env var | One spelling per job: `packages` and `env = {…}` |
@@ -214,6 +215,8 @@ items are deleted and survivors keep their numbers.
   `android-kotlin/.github/workflows/ci.yml` to the repo root — it lives inside
   the template *so generated repos inherit it*, and has never run here;
   reintroducing `flake-utils` to shorten the `forAllSystems` helper — the
-  duplication is the design, `docs/decisions/no-flake-utils.md`.
+  duplication is the design, `docs/decisions/no-flake-utils.md`; devenv in a
+  template or in the registry, including a hybrid `.envrc` —
+  `docs/decisions/devenv.md`.
 - **If a request genuinely doesn't fit,** say so and give options with their
   costs. Do not silently bend an invariant.

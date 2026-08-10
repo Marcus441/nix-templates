@@ -56,7 +56,11 @@ than imported, and why it cannot be shared.
   narrowed template says so in the artifact and not only in `meta/`.
 - **Never introduce `flake-utils`,** or flake-parts, import-tree, devenv or
   snowfall. The registry uses flake-parts; a template must not. A generated
-  project should not inherit a framework it did not ask for.
+  project should not inherit a framework it did not ask for. Checked for all
+  five: `flake-inputs` greps each template's `flake.nix` for the name used as an
+  attribute path or in a flake ref, so an aliased input does not slip past.
+  `docs/decisions/no-flake-utils.md` and `docs/decisions/devenv.md` record the
+  reasoning for the two that keep coming back.
 - **Keep the `...` ellipsis** in the `outputs` argument set. Without it, adding
   any input is a breaking change to the consumer's flake. Checked.
 - **Never reference a path outside the template directory.** No `../`, no

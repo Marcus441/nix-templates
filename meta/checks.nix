@@ -27,6 +27,13 @@
       + lib.concatMapStringsSep " " (s: ''"${s}"'') templates.${n}.systems
       + "];";
 
+    # Inv. 4, all five. Matched as an attribute-path head (`devenv.url = …`,
+    # `flake-parts.lib.mkFlake`, `{self, flake-parts, ...}`) or anywhere in a
+    # flake ref, which also catches an aliased input. A preceding `.` is
+    # excluded so a nixpkgs package of the same name in a dev shell's
+    # `packages` cannot trip it.
+    bannedFrameworks = ["flake-utils" "flake-parts" "import-tree" "devenv" "snowfall"];
+
     # Directories that are repository machinery rather than templates.
     notTemplates = ["meta" "scripts" "docs"];
 
@@ -130,9 +137,9 @@
         names
       );
 
-      # Inv. 4 and Inv. 5. One URL spelling, one system-iteration idiom, and a
-      # `systems` list that says the same thing the registry does — a template
-      # that claims a system the registry excludes is untested by construction.
+      # Inv. 4 and Inv. 5. One URL spelling, no framework, and a `systems` list
+      # that says the same thing the registry does — a template that claims a
+      # system the registry excludes is untested by construction.
       flake-inputs = pkgs.runCommand "check-flake-inputs" {} ''
         # Single-quoted: canonicalUrl contains double quotes of its own.
         expected='${canonicalUrl}'
@@ -143,10 +150,13 @@
               echo "  ${n}: nixpkgs pinned as $found" >&2
               fail=1
             fi
-            if grep -q 'flake-utils' ${root + "/${n}/flake.nix"}; then
-              echo "  ${n}: uses flake-utils; iterate systems with nixpkgs.lib.genAttrs" >&2
-              fail=1
-            fi
+            ${lib.concatMapStringsSep "\n" (f: ''
+                if grep -qE '(^|[^[:alnum:]_.-])${f}([.,}[:space:]]|$)|url = .*${f}' ${root + "/${n}/flake.nix"}; then
+                  echo "  ${n}: uses ${f}; a template's only input is nixpkgs" >&2
+                  fail=1
+                fi
+              '')
+              bannedFrameworks}
             if ! grep -qxF '${systemsLine n}' ${root + "/${n}/flake.nix"}; then
               echo "  ${n}: flake does not declare ${systemsLine n}" >&2
               fail=1
