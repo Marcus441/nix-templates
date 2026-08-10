@@ -14,7 +14,7 @@ and only baked `abiVersions = ["x86_64"]`. The narrowing existed solely in
 self-describing, and `checks.flake-inputs` renders the expected line from the
 registry and greps for it, so the two cannot drift.
 
-**Breaks:** four lines of helper are now duplicated in all eleven templates.
+**Breaks:** four lines of helper are now duplicated in all thirteen templates.
 Inv. 1 forbids factoring them out — a template is copied verbatim and cannot
 import anything — so this is a permanent, deliberate duplication, held in sync
 by `checks.flake-inputs` rather than by abstraction. Anyone reading two
@@ -23,7 +23,7 @@ not an oversight.
 
 A second cost: `forAllSystems` passes `pkgs`, not `system`. Templates that need
 `self.packages.<system>` index with `pkgs.system` instead. This keeps the helper
-one-argument across all eleven files, at the price of an idiom that is slightly
+one-argument across all thirteen files, at the price of an idiom that is slightly
 less obvious than the `system` variable `eachDefaultSystem` used to bind.
 
 **Also:** the helper is the shape the wider ecosystem has converged on —

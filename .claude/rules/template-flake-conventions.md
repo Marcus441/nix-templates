@@ -42,7 +42,7 @@ and, more importantly, teaches the reader a second idiom for no reason.
 Take `self` as the first argument **only** when it is used —
 `inputsFrom = [self.packages.${pkgs.system}.default]` is the usual reason. Note
 `pkgs.system`: `forAllSystems` passes `pkgs`, not `system`, so that the helper
-is one argument in all eleven templates. Alejandra collapses `{nixpkgs, ...}`
+is one argument in all thirteen templates. Alejandra collapses `{nixpkgs, ...}`
 onto one line and expands `{self, nixpkgs, ...}`; let it, and never hand-format
 against it — `checks.treefmt` is the arbiter.
 

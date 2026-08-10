@@ -2,7 +2,7 @@
 
 This repository publishes **project templates** consumed by
 `nix flake init -t github:Marcus441/nix-templates#<name>`. Its product is not a
-configuration — it is eleven standalone flakes that other people copy. That one
+configuration — it is thirteen standalone flakes that other people copy. That one
 fact drives every rule below. If a change would violate an invariant, stop and
 say so.
 
@@ -49,7 +49,7 @@ nixpkgs. It exists to *describe and test* the templates. `flake.templates` is
 `mapAttrs` over `config.templates`; adding a registry entry is what publishes a
 template.
 
-**The templates** are eleven unrelated flakes that happen to live in one git
+**The templates** are thirteen unrelated flakes that happen to live in one git
 repo. They share no code and cannot. They are the artifact.
 
 flake-parts is used **only** for the registry, and only because `perSystem` is
@@ -160,8 +160,13 @@ items are deleted and survivors keep their numbers.
 2. **`cpp-jetson` and `python-jetson` duplicate ~20 lines verbatim** — the
    l4t-base container block, its digest and sha256. Inv. 1 forbids extracting
    them; the duplication is permanent and must stay in sync by hand.
-4. **`cpp` and `cpp-modern` share ~45 lines** of toolchain scaffold. Same
-   constraint as item 2.
+4. **The four C++ templates duplicate each other by design.** `cpp-prod` and
+   `cpp-prod-modern` are the worst pair — near-identical `CMakeLists.txt`,
+   `CMakePresets.json` and `.github/workflows/ci.yml`, differing only in the
+   module handling — and all four repeat the toolchain scaffold in `flake.nix`.
+   Inv. 1 forbids extracting any of it. The ladder is worth the cost, but a fix
+   to one rung is worth applying to the others, and `cpp-prod-modern`'s README
+   points at `cpp-prod` rather than restating its reasoning.
 9. **Only `x86_64-linux` is provable locally.** CI covers all three systems a
    template can claim, but `./scripts/test-template.sh` runs on the machine you
    are sitting at — so a template authored on Linux cannot be verified for
