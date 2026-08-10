@@ -33,13 +33,17 @@
       "configuration": "RelWithDebInfo"
     }
   ],
-"testPresets": [
+  "testPresets": [
     {
       "name": "test-base",
       "hidden": true,
       "configurePreset": "default",
       "output": { "outputOnFailure": true },
-      "environment": { "GTEST_COLOR": "1" }
+      "execution": { "noTestsAction": "error" },
+      "environment": {
+        "ASAN_OPTIONS": "abort_on_error=1",
+        "UBSAN_OPTIONS": "print_stacktrace=1:halt_on_error=1"
+      }
     },
     {
       "name": "debug",

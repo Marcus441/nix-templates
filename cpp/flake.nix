@@ -16,25 +16,11 @@
         system: f (import nixpkgs {inherit system;})
       );
 
-    project = "myproject";
-    binary = "my-project";
-
-    toolchains = pkgs: let
-      llvm = pkgs.llvmPackages;
-    in {
-      clang = {
-        inherit (llvm) stdenv;
-        shellTools = [llvm.lldb llvm.bintools];
-      };
-      gcc = {
-        stdenv = pkgs.gccStdenv;
-        shellTools = [pkgs.gdb];
-      };
-    };
-
-    mkPackage = pkgs: toolchain:
-      toolchain.stdenv.mkDerivation {
-        pname = project;
+    binary = "myproject";
+  in {
+    packages = forAllSystems (pkgs: {
+      default = pkgs.llvmPackages.stdenv.mkDerivation {
+        pname = binary;
         version = "0.1.0";
         src = ./.;
 
@@ -44,14 +30,9 @@
           pkgs.pkg-config
         ];
 
-        buildInputs = [];
-
-        checkInputs = [pkgs.gtest];
-
         cmakeFlags = [
           "-DCMAKE_BUILD_TYPE=Release"
           "-DUSE_SANITIZERS=OFF"
-          "-DFETCHCONTENT_FULLY_DISCONNECTED=ON"
         ];
 
         doCheck = true;
@@ -59,25 +40,19 @@
 
         meta.mainProgram = binary;
       };
+    });
 
-    mkDevShell = pkgs: name: toolchain:
-      (pkgs.mkShell.override {inherit (toolchain) stdenv;}) {
-        name = "cpp-${name}";
-        inputsFrom = [(mkPackage pkgs toolchain)];
-        packages = [pkgs.llvmPackages.clang-tools] ++ toolchain.shellTools;
+    devShells = forAllSystems (pkgs: {
+      default = (pkgs.mkShell.override {stdenv = pkgs.llvmPackages.stdenv;}) {
+        name = "cpp";
+        inputsFrom = [self.packages.${pkgs.system}.default];
+        packages = [
+          pkgs.llvmPackages.clang-tools
+          pkgs.llvmPackages.lldb
+          pkgs.cpplint
+        ];
       };
-  in {
-    packages = forAllSystems (
-      pkgs:
-        builtins.mapAttrs (_: mkPackage pkgs) (toolchains pkgs)
-        // {default = self.packages.${pkgs.system}.clang;}
-    );
-
-    devShells = forAllSystems (
-      pkgs:
-        builtins.mapAttrs (mkDevShell pkgs) (toolchains pkgs)
-        // {default = self.devShells.${pkgs.system}.clang;}
-    );
+    });
 
     formatter = forAllSystems (pkgs: pkgs.alejandra);
   };

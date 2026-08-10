@@ -1,6 +1,9 @@
-cmake_minimum_required(VERSION 3.25...3.31)
+cmake_minimum_required(VERSION 3.25...4.3)
 
-project(my-project LANGUAGES CXX)
+project(myproject
+    VERSION     0.1.0
+    DESCRIPTION "A small C++23 project"
+    LANGUAGES   CXX)
 
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -8,60 +11,35 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 set(CMAKE_CXX_SCAN_FOR_MODULES OFF)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-set(SOURCES
-    src/main.cpp
-)
+option(USE_SANITIZERS "Enable ASan/UBSan in Debug builds" ON)
 
-add_executable(${PROJECT_NAME} ${SOURCES})
+# The program and the test binary compile the same implementation files. A test
+# executable is just another executable — sharing a library target between them
+# is what the cpp-prod template adds.
+set(SOURCES src/greeting.cpp)
 
-target_include_directories(${PROJECT_NAME} PRIVATE
-    ${CMAKE_CURRENT_SOURCE_DIR}/include
-)
-
+add_executable(myproject src/main.cpp ${SOURCES})
+target_include_directories(myproject PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
 
 enable_testing()
-include(FetchContent)
 
-FetchContent_Declare(
-    googletest
-    GIT_REPOSITORY https://github.com/google/googletest.git
-    GIT_TAG        v1.17.0
-    EXCLUDE_FROM_ALL
-)
+add_executable(myproject-tests tests/main_test.cpp ${SOURCES})
+target_include_directories(myproject-tests PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
+add_test(NAME myproject-tests COMMAND myproject-tests)
 
-if(FETCHCONTENT_FULLY_DISCONNECTED)
-    find_package(GTest REQUIRED)
-    if(NOT TARGET gtest_main)
-        add_library(gtest_main ALIAS GTest::gtest_main)
-    endif()
-    if(NOT TARGET gmock_main)
-        if(TARGET GTest::gmock_main)
-            add_library(gmock_main ALIAS GTest::gmock_main)
-        else()
-            add_library(gmock_main ALIAS GTest::gtest_main)
-        endif()
-    endif()
-else()
-    FetchContent_MakeAvailable(googletest)
+if(USE_SANITIZERS AND NOT MSVC)
+    # Debug only — the instrumentation is far too slow to leave on in a release
+    # build. -fno-sanitize-recover is what makes the sanitizers fail the test:
+    # by default UBSan prints a diagnostic and the process still exits 0.
+    set(SAN_FLAGS
+        $<$<CONFIG:Debug>:-fsanitize=address,undefined>
+        $<$<CONFIG:Debug>:-fno-sanitize-recover=all>
+        $<$<CONFIG:Debug>:-fno-omit-frame-pointer>)
+
+    foreach(target myproject myproject-tests)
+        target_compile_options(${target} PRIVATE ${SAN_FLAGS})
+        target_link_options(${target} PRIVATE ${SAN_FLAGS})
+    endforeach()
 endif()
 
-add_executable(${PROJECT_NAME}-tests tests/main_test.cpp)
-target_link_libraries(${PROJECT_NAME}-tests PRIVATE gtest_main gmock_main)
-add_test(NAME ${PROJECT_NAME}-tests COMMAND ${PROJECT_NAME}-tests)
-
-option(USE_SANITIZERS "Enable ASan/UBSan in Debug mode" ON)
-
-if(USE_SANITIZERS)
-    if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
-        set(SAN_FLAGS $<$<CONFIG:Debug>:-fsanitize=address,undefined -fno-omit-frame-pointer>)
-        
-        target_compile_options(${PROJECT_NAME} PRIVATE ${SAN_FLAGS})
-        target_link_options(${PROJECT_NAME} PRIVATE ${SAN_FLAGS})
-        
-        target_compile_options(${PROJECT_NAME}-tests PRIVATE ${SAN_FLAGS})
-        target_link_options(${PROJECT_NAME}-tests PRIVATE ${SAN_FLAGS})
-    endif()
-endif()
-
-
-install(TARGETS ${PROJECT_NAME} DESTINATION bin)
+install(TARGETS myproject DESTINATION bin)
