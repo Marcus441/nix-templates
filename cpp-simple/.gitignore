@@ -1,0 +1,19 @@
+# Nix
+result
+result-*
+.direnv/
+
+# Build output
+build/
+myproject
+*.o
+
+# Editors / OS
+.cache/
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+
+.env
