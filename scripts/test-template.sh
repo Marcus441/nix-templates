@@ -98,6 +98,10 @@ fi
 # eval < shell < build
 rank() { case "$1" in eval) echo 0 ;; shell) echo 1 ;; build) echo 2 ;; *) echo 0 ;; esac }
 
+# Enough to carry a nix build failure's actual error, short enough that eleven
+# of them do not bury the summary. `--keep` prints the path to the whole thing.
+LOG_TAIL=${LOG_TAIL:-40}
+
 pass=0
 fail=0
 skip=0
@@ -124,6 +128,12 @@ for name in "${names[@]}"; do
   # instead, which both agree on.
   work=$(mktemp -d "${TMPDIR:-/tmp}/tmpl-$name-XXXXXX")
 
+  # Beside the work dir, never inside it: the template copy gets `git add -A`d
+  # and its own flake would then see a stray file. Each step overwrites it, so
+  # after a failure it holds the failing step's output — which is the only way
+  # to learn anything from a CI runner you cannot cd into.
+  log="$work.log"
+
   # dotnet writes ~/.dotnet, npm writes ~/.npm, gradle writes ~/.gradle. Without
   # a redirected HOME the harness mutates the developer's home directory and
   # stops being reproducible on a fresh CI runner.
@@ -144,7 +154,7 @@ for name in "${names[@]}"; do
   ok=1
   (
     cd "$work" || exit 1
-    nix flake init -t "$REPO#$name" >/dev/null 2>&1
+    nix flake init -t "$REPO#$name" >"$log" 2>&1
   ) || {
     ok=0
     step="nix flake init -t $REPO#$name"
@@ -156,7 +166,7 @@ for name in "${names[@]}"; do
     git -C "$work" init -q >/dev/null 2>&1
     git -C "$work" add -A >/dev/null 2>&1
 
-    if ! (cd "$work" && nix flake check --no-build ${impure[@]+"${impure[@]}"}) >/dev/null 2>&1; then
+    if ! (cd "$work" && nix flake check --no-build ${impure[@]+"${impure[@]}"}) >"$log" 2>&1; then
       ok=0
       step="nix flake check --no-build"
     fi
@@ -165,7 +175,7 @@ for name in "${names[@]}"; do
   if [ $ok -eq 1 ] && [ "$(rank "$tier")" -ge 1 ]; then
     while read -r cmd; do
       [ -n "$cmd" ] || continue
-      if ! (cd "$work" && nix develop ${impure[@]+"${impure[@]}"} --command bash -c "$cmd") >/dev/null 2>&1; then
+      if ! (cd "$work" && nix develop ${impure[@]+"${impure[@]}"} --command bash -c "$cmd") >"$log" 2>&1; then
         ok=0
         step="nix develop --command $cmd"
         break
@@ -174,7 +184,7 @@ for name in "${names[@]}"; do
   fi
 
   if [ $ok -eq 1 ] && [ "$(rank "$tier")" -ge 2 ]; then
-    if ! (cd "$work" && nix build --no-link ${impure[@]+"${impure[@]}"} '.#default') >/dev/null 2>&1; then
+    if ! (cd "$work" && nix build --no-link ${impure[@]+"${impure[@]}"} '.#default') >"$log" 2>&1; then
       ok=0
       step="nix build .#default"
     fi
@@ -197,13 +207,18 @@ for name in "${names[@]}"; do
   else
     printf '%-16s %-6s FAIL\n' "$name" "$tier"
     printf '  reproduce:  cd %s && %s\n' "$work" "$step"
+    if [ -s "$log" ]; then
+      printf '  last %d lines of output:\n' "$LOG_TAIL"
+      tail -n "$LOG_TAIL" "$log" | sed 's/^/  | /'
+    fi
     fail=$((fail + 1))
   fi
 
   if [ $keep -eq 1 ]; then
     kept+=("$work")
+    printf '  full log:   %s\n' "$log"
   else
-    rm -rf "$work"
+    rm -rf "$work" "$log"
   fi
 done
 

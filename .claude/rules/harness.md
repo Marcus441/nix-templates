@@ -37,9 +37,13 @@ only needs to *read* the template's files or the registry, it belongs in
 - **`SKIP` is not `PASS`.** A template whose `systems` excludes the current
   system is skipped, and the summary must say so separately. A harness that
   reports green for work it did not do is worse than no harness.
-- **Every `FAIL` prints a reproduce line** — the temp dir and the exact command,
-  as `verify.sh` does in the sibling repo. `--keep` suppresses cleanup so that
-  directory still exists.
+- **Every `FAIL` prints a reproduce line and the failing command's output** —
+  the temp dir, the exact command, and the last `LOG_TAIL` (default 40) lines.
+  The reproduce line alone is useless on a CI runner nobody can `cd` into; a
+  darwin failure that says only "FAIL" costs a whole round trip to diagnose.
+  `--keep` suppresses cleanup so the directory and the full log both survive.
+  Steps write to `"$work.log"` — *beside* the work directory, never inside it,
+  or the template copy would `git add -A` a stray file into its own flake.
 - **It must run on bash 3.2.** The macOS runners ship bash 3.2.57 and the
   workflow calls `./scripts/test-template.sh` directly, so the script gets the
   system bash, not a nixpkgs one. That rules out three things a Linux-only
