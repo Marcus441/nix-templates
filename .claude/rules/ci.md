@@ -25,9 +25,23 @@ from the `checks` output, and this repo's checks are static and say nothing
 about whether a template works. The `tier` decides *which commands run*, not
 just which attribute to build, so the matrix has to carry it.
 
-Templates whose `systems` excludes `x86_64-linux` are filtered out of the matrix
-and listed in the job summary with their `reason` — visible, not silently
-dropped.
+The matrix has two dimensions: template × runner. Each entry in `systems` that a
+GitHub runner can host produces a leg — `x86_64-linux` on `ubuntu-latest`,
+`aarch64-darwin` on `macos-latest` — so `android-kotlin`, narrowed to
+`x86_64-linux`, gets one leg and everything else gets two.
+
+**`aarch64-linux` is claimed by ten templates and tested by none.** Every
+template's default `systems` includes it and the matrix has no runner for it, so
+a breakage there ships. The job summary prints every such claim rather than
+dropping it silently. Closing it means either GitHub's `ubuntu-24.04-arm`
+runners, which are free only for public repositories, or dropping the system
+from `systems` — but *only* if it genuinely does not apply, never to make the
+summary shorter.
+
+Cache the Linux legs only. The Actions cache budget is 10 GB per repository and
+the `cpp`/`rust` closures are large; caching darwin too would roughly double the
+keys competing for it and start evicting the Linux ones. Cache keys carry
+`matrix.system`, or the two runners fight over one key.
 
 ## A red scheduled run usually is not the last commit
 
