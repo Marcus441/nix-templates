@@ -30,6 +30,12 @@
       smoke = ["cmake --version" "clangd --version"];
     };
 
+    cpp-simple = {
+      description = "Dev environment for learning C++ with a plain Makefile";
+      tier = "build";
+      smoke = ["make --version" "clangd --version" "cpplint --version"];
+    };
+
     dotnet = {
       description = "Dev environment with dotnet sdk and runtime";
       tier = "shell";
