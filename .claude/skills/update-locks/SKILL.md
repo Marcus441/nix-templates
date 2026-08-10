@@ -1,15 +1,15 @@
 ---
 description: >-
   Use when updating the committed flake.lock of a locked template
-  (android-kotlin, cpp-jetson, python-jetson), when deciding whether a template
-  should become locked or unlocked, or when a scheduled CI run reports upstream
-  nixpkgs drift.
+  (android-kotlin today), when deciding whether a template should become locked
+  or unlocked, or when a scheduled CI run reports upstream nixpkgs drift.
 ---
 
 # Updating a lock
 
-Three templates ship a committed `flake.lock`: `android-kotlin`, `cpp-jetson`,
-`python-jetson` (CLAUDE.md §5). Updating one is **consumer-facing** — whoever
+One template ships a committed `flake.lock`: `android-kotlin` (CLAUDE.md §5).
+Everything else resolves current nixpkgs on first use, so there is nothing to
+update. Updating a lock is **consumer-facing** — whoever
 runs `nix flake init -t` next gets exactly what the update resolved. It is not
 housekeeping.
 

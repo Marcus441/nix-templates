@@ -19,8 +19,6 @@ With no `#name`, you get `shell` — a minimal dev shell to fill in.
 | `cpp` | C++23 — CMake + Ninja presets, ASan/UBSan, `ctest` with no test framework |
 | `cpp-prod` | Production C++23 — library/exe split, gtest, ASan/UBSan/TSan/coverage profiles, CI |
 | `cpp-prod-modern` | As `cpp-prod`, with the library exposed as a C++23 module |
-| `cpp-jetson` | C/C++ for the Jetson platform — aarch64 cross-compile, l4t container |
-| `python-jetson` | Python for the Jetson platform — aarch64 cross-compile, l4t container |
 | `node` | Node.js + TypeScript, built with `buildNpmPackage` |
 | `node-rest-api` | Node.js REST API — Express 5 middleware layout, vitest |
 | `dotnet` | .NET SDK and runtime, with F# tooling helpers |
@@ -53,8 +51,8 @@ a missing path.
 Most templates ship without a `flake.lock`, so the first `nix develop` resolves
 current `nixos-unstable`. Run `nix flake lock` in your new project to pin it.
 
-`android-kotlin`, `cpp-jetson` and `python-jetson` ship a lock, because
-resolving them is slow enough to be worth pinning up front.
+`android-kotlin` ships a lock, because resolving it is slow enough to be worth
+pinning up front.
 
 `node` and `node-rest-api` also ship a `package-lock.json`, which `nix build`
 consumes through `buildNpmPackage` — change a dependency and you refresh both

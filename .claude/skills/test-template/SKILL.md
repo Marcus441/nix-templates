@@ -36,9 +36,9 @@ Tiers (CLAUDE.md §3): `eval` instantiates and evaluates; `shell` also opens the
 dev shell and runs each `smoke` command; `build` also runs `nix build .#default`,
 which is where the template's own `ctest` / `cargo test` runs.
 
-So a `PASS` at `eval` proves only that the flake evaluates — `android-kotlin`,
-`cpp-jetson` and `python-jetson` are all `eval`, and nothing proves their shells
-work. Say so rather than reporting a bare green.
+So a `PASS` at `eval` proves only that the flake evaluates — `android-kotlin` is
+the only template there, and nothing proves its shell works. Say so rather than
+reporting a bare green.
 
 ## Debugging a failure
 

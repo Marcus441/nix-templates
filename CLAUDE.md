@@ -2,7 +2,7 @@
 
 This repository publishes **project templates** consumed by
 `nix flake init -t github:Marcus441/nix-templates#<name>`. Its product is not a
-configuration — it is thirteen standalone flakes that other people copy. That one
+configuration — it is eleven standalone flakes that other people copy. That one
 fact drives every rule below. If a change would violate an invariant, stop and
 say so.
 
@@ -49,7 +49,7 @@ nixpkgs. It exists to *describe and test* the templates. `flake.templates` is
 `mapAttrs` over `config.templates`; adding a registry entry is what publishes a
 template.
 
-**The templates** are thirteen unrelated flakes that happen to live in one git
+**The templates** are eleven unrelated flakes that happen to live in one git
 repo. They share no code and cannot. They are the artifact.
 
 flake-parts is used **only** for the registry, and only because `perSystem` is
@@ -100,10 +100,13 @@ one is not an improvement at six files.
 
 | Locked (committed `flake.lock`) | Unlocked |
 | --- | --- |
-| `android-kotlin`, `cpp-jetson`, `python-jetson` | the other eight |
+| `android-kotlin` | the other ten |
 
 Locked where resolution is slow or fragile. Unlocked elsewhere so consumers get
-current nixpkgs on first use.
+current nixpkgs on first use. Only `android-kotlin` meets that bar today, but
+the policy is still a hybrid rather than "everything unlocked" — the machinery
+and the `lock-policy` check stay, because the next slow-resolving template
+should not have to reintroduce them.
 
 Consequences, both of which bite:
 
@@ -113,9 +116,9 @@ Consequences, both of which bite:
   consumer-facing change and belongs in its own commit with a rationale. Bare
   `nix flake update` is hook-blocked.
 
-`.gitignore` ignores `flake.lock` repo-wide and re-includes the four that are
-tracked (the three above plus the root's). Adding a locked template means adding
-a negation line.
+`.gitignore` ignores `flake.lock` repo-wide and re-includes the two that are
+tracked (the one above plus the root's). Adding a locked template means adding a
+negation line.
 
 ## 6. Hazards and verification
 
@@ -157,9 +160,6 @@ git add -A && nix flake check      # static layer — seconds
 the same change, or state why not. Item numbers are stable identities — closed
 items are deleted and survivors keep their numbers.
 
-2. **`cpp-jetson` and `python-jetson` duplicate ~20 lines verbatim** — the
-   l4t-base container block, its digest and sha256. Inv. 1 forbids extracting
-   them; the duplication is permanent and must stay in sync by hand.
 4. **The four C++ templates duplicate each other by design.** `cpp-prod` and
    `cpp-prod-modern` are the worst pair — near-identical `CMakeLists.txt`,
    `CMakePresets.json` and `.github/workflows/ci.yml`, differing only in the
