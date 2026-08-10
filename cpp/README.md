@@ -56,6 +56,21 @@ ctest --preset debug
 
 ## Notes
 
+- **The Clang toolchain is `pkgs.llvmPackages`, the version nixpkgs defaults to
+  on your platform** — currently LLVM 21 — rather than a pinned one. That is
+  the version nixpkgs actually builds and caches everywhere, so the dev shell
+  comes from the binary cache instead of compiling a compiler. Pin it if you
+  need to:
+
+  ```nix
+  llvm = pkgs.llvmPackages_21;
+  ```
+
+  Be aware of what pinning costs on macOS. The darwin stdenv tracks a recent
+  libc++ and Apple SDK, and an older LLVM's `compiler-rt` does not always
+  compile against them — pinning LLVM 18 here used to make `nix develop` build
+  LLVM from source and then fail outright on `aarch64-darwin`. If you pin,
+  check it on every platform your `systems` list claims.
 - **GoogleTest comes from `checkInputs`, not `FetchContent`.** A Nix build
   sandbox has no network, so `-DFETCHCONTENT_FULLY_DISCONNECTED=ON` is passed
   and `CMakeLists.txt` takes its disconnected branch. If you add a dependency,

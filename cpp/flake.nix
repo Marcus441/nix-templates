@@ -18,10 +18,9 @@
 
     project = "myproject";
     binary = "my-project";
-    llvmVersion = "18";
 
     toolchains = pkgs: let
-      llvm = pkgs."llvmPackages_${llvmVersion}";
+      llvm = pkgs.llvmPackages;
     in {
       clang = {
         inherit (llvm) stdenv;
@@ -65,7 +64,7 @@
       (pkgs.mkShell.override {inherit (toolchain) stdenv;}) {
         name = "cpp-${name}";
         inputsFrom = [(mkPackage pkgs toolchain)];
-        packages = [pkgs."llvmPackages_${llvmVersion}".clang-tools] ++ toolchain.shellTools;
+        packages = [pkgs.llvmPackages.clang-tools] ++ toolchain.shellTools;
       };
   in {
     packages = forAllSystems (
