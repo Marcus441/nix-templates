@@ -1,0 +1,22 @@
+# Nix
+result
+result-*
+.direnv/
+
+# .NET build output
+bin/
+obj/
+[Dd]ebug/
+[Rr]elease/
+*.user
+*.suo
+
+# NuGet
+*.nupkg
+packages/
+.nuget/
+
+# Rider / VS / VS Code
+.idea/
+.vs/
+.vscode/
