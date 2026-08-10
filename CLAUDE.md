@@ -162,16 +162,11 @@ items are deleted and survivors keep their numbers.
    them; the duplication is permanent and must stay in sync by hand.
 4. **`cpp` and `cpp-modern` share ~45 lines** of toolchain scaffold. Same
    constraint as item 2.
-8. **`aarch64-linux` is claimed by ten templates and tested by none.** It is in
-   every unnarrowed `systems` list and the CI matrix has no runner that can host
-   it, so a breakage there ships. The job summary prints every such claim.
-   Closing it means GitHub's `ubuntu-24.04-arm` runners — free only for public
-   repositories — or dropping the system from `systems`, but only if it
-   genuinely does not apply. `.claude/rules/ci.md`.
-9. **Nothing checks that a template's dev shell opens on darwin before it is
-   claimed.** The macOS legs added in §6 prove it after the fact, on push. A
-   template authored locally on Linux still cannot be verified for
-   `aarch64-darwin` without pushing.
+9. **Only `x86_64-linux` is provable locally.** CI covers all three systems a
+   template can claim, but `./scripts/test-template.sh` runs on the machine you
+   are sitting at — so a template authored on Linux cannot be verified for
+   `aarch64-darwin` or `aarch64-linux` without pushing. Expect the first CI run
+   on a new template to find things the harness could not.
 
 ## 8. Anti-patterns
 

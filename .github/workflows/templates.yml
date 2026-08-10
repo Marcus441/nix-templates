@@ -48,30 +48,40 @@ jobs:
       # meta/templates.nix is the single source of truth (CLAUDE.md Inv. 2).
       # nix-github-actions is deliberately not used: it derives a matrix from
       # `checks`, and our checks are static and say nothing about templates.
-      # One leg per (template, runner) pair the template's `systems` asks for.
-      # A template that claims aarch64-darwin is now tested there rather than
-      # taken on trust — CLAUDE.md §7 item 6.
+      # One leg per (template, runner) pair the template's `systems` asks for,
+      # so every system a template claims is a system something tests —
+      # CLAUDE.md §7 item 6. `ubuntu-24.04-arm` is free for public repositories.
       - id: gen
+        env:
+          RUNNERS: >-
+            [{"os": "ubuntu-latest",    "system": "x86_64-linux"},
+             {"os": "ubuntu-24.04-arm", "system": "aarch64-linux"},
+             {"os": "macos-latest",     "system": "aarch64-darwin"}]
         run: |
           json=$(cat "$(nix build --no-link --print-out-paths .#registry-json)")
-          matrix=$(jq -c '[to_entries[] as $t
-                           | ({os: "ubuntu-latest", system: "x86_64-linux"},
-                              {os: "macos-latest",  system: "aarch64-darwin"}) as $r
+          matrix=$(jq -c --argjson runners "$RUNNERS" '[to_entries[] as $t
+                           | $runners[] as $r
                            | select($t.value.systems | index($r.system))
                            | {name: $t.key, tier: $t.value.tier, os: $r.os, system: $r.system}]' <<<"$json")
           echo "matrix=$matrix" >>"$GITHUB_OUTPUT"
 
           # Anything a template claims that no runner covers is stated here
-          # rather than quietly dropped. `aarch64-linux` is the standing gap.
+          # rather than quietly dropped. Empty today; keep it that way.
+          uncovered=$(jq -r --argjson runners "$RUNNERS" '
+            ([$runners[].system]) as $covered
+            | to_entries[]
+            | .key as $name
+            | (.value.systems - $covered)[]
+            | "- **\($name)** — claims \(.), which no runner in this matrix covers"
+          ' <<<"$json")
           {
             echo "### Claimed but not tested"
             echo
-            jq -r --argjson covered '["x86_64-linux","aarch64-darwin"]' '
-              to_entries[]
-              | .key as $name
-              | (.value.systems - $covered)[]
-              | "- **\($name)** — claims \(.), which no runner in this matrix covers"
-            ' <<<"$json"
+            if [ -n "$uncovered" ]; then
+              echo "$uncovered"
+            else
+              echo "Nothing — every system in every \`systems\` list has a runner."
+            fi
           } >>"$GITHUB_STEP_SUMMARY"
 
   template:
@@ -90,12 +100,14 @@ jobs:
       # which the Actions store cache removes. Cachix would need a secret and
       # would break fork PRs for no benefit.
       #
-      # Linux only, deliberately. The cache budget is 10 GB per repository and
-      # `cpp` and `rust` closures are large; caching the darwin legs too would
-      # roughly double the number of keys competing for it and start evicting
-      # the linux ones. The darwin legs pay a download instead.
+      # x86_64-linux only, deliberately. The cache budget is 10 GB per
+      # repository and the `cpp`/`rust` closures are large; caching all three
+      # runners would triple the keys competing for it and start evicting each
+      # other. The aarch64 and darwin legs pay a download from cache.nixos.org
+      # instead, which is the cost this action exists to remove — accepted so
+      # the leg that runs on every push stays fast.
       - uses: nix-community/cache-nix-action@v6
-        if: runner.os == 'Linux'
+        if: matrix.system == 'x86_64-linux'
         with:
           primary-key: nix-${{ matrix.system }}-${{ matrix.name }}-${{ hashFiles(format('{0}/flake.nix', matrix.name), format('{0}/flake.lock', matrix.name)) }}
           restore-prefixes-first-match: nix-${{ matrix.system }}-${{ matrix.name }}-

@@ -25,23 +25,30 @@ from the `checks` output, and this repo's checks are static and say nothing
 about whether a template works. The `tier` decides *which commands run*, not
 just which attribute to build, so the matrix has to carry it.
 
-The matrix has two dimensions: template × runner. Each entry in `systems` that a
-GitHub runner can host produces a leg — `x86_64-linux` on `ubuntu-latest`,
-`aarch64-darwin` on `macos-latest` — so `android-kotlin`, narrowed to
-`x86_64-linux`, gets one leg and everything else gets two.
+The matrix has two dimensions: template × runner. Every entry in a template's
+`systems` produces a leg, so a system a template claims is a system something
+tests:
 
-**`aarch64-linux` is claimed by ten templates and tested by none.** Every
-template's default `systems` includes it and the matrix has no runner for it, so
-a breakage there ships. The job summary prints every such claim rather than
-dropping it silently. Closing it means either GitHub's `ubuntu-24.04-arm`
-runners, which are free only for public repositories, or dropping the system
-from `systems` — but *only* if it genuinely does not apply, never to make the
-summary shorter.
+| `systems` entry | Runner |
+| --- | --- |
+| `x86_64-linux` | `ubuntu-latest` |
+| `aarch64-linux` | `ubuntu-24.04-arm` — free for public repositories only |
+| `aarch64-darwin` | `macos-latest` |
 
-Cache the Linux legs only. The Actions cache budget is 10 GB per repository and
-the `cpp`/`rust` closures are large; caching darwin too would roughly double the
-keys competing for it and start evicting the Linux ones. Cache keys carry
-`matrix.system`, or the two runners fight over one key.
+`android-kotlin`, narrowed to `x86_64-linux`, gets one leg; everything else gets
+three. 31 legs from 11 templates.
+
+The runner list lives in the `RUNNERS` env of the `registry` job, and the job
+summary prints any `systems` entry it does not cover. That list should stay
+empty. **Adding a system to a template's `systems` without a runner for it is
+how the repo goes back to claiming things nothing proves** — add the runner, or
+do not make the claim.
+
+Cache the `x86_64-linux` legs only. The Actions cache budget is 10 GB per
+repository and the `cpp`/`rust` closures are large; caching all three runners
+would triple the keys competing for it and evict each other. The other two legs
+pay a download from `cache.nixos.org`. Cache keys carry `matrix.system` anyway,
+so nothing collides if that decision is ever revisited.
 
 ## A red scheduled run usually is not the last commit
 
