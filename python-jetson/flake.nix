@@ -1,8 +1,8 @@
 {
-  description = "Jetson C++ flake with g2o + Ceres";
+  description = "Jetson Python flake with aarch64 cross-compilation and an l4t container";
 
   inputs = {
-    nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
+    nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable";
     flake-utils.url = "github:numtide/flake-utils";
     nix2container.url = "github:nlewo/nix2container";
   };

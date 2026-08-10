@@ -1,9 +1,11 @@
 {
-  description = ".NET Project Template";
+  description = ".NET project template with a reproducible SDK dev shell";
+
   inputs = {
-    nixpkgs.url = "nixpkgs/nixos-unstable";
+    nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable";
     flake-utils.url = "github:numtide/flake-utils";
   };
+
   outputs = {
     nixpkgs,
     flake-utils,
@@ -12,103 +14,64 @@
     flake-utils.lib.eachDefaultSystem (
       system: let
         pkgs = import nixpkgs {inherit system;};
+        inherit (nixpkgs) lib;
 
         # ── Project configuration ─────────────────────────────────────────────
-        # TODO: Edit these to match your project
+        # TODO: Edit these to match the project you scaffold with `dotnet new`.
         projectName = "HelloWorld";
         projectFile = "./${projectName}/${projectName}.fsproj";
         testProjectFile = "./${projectName}.Test/${projectName}.Test.fsproj";
         version = "0.0.1";
 
         # ── .NET version ──────────────────────────────────────────────────────
-        # Options: dotnet_6, dotnet_7, dotnet_8, dotnet_9, dotnet_10
+        # Options: dotnet_8, dotnet_9, dotnet_10
         dotnet-version = "dotnet_10";
         dotnet-sdk = pkgs.dotnetCorePackages.${dotnet-version}.sdk;
         dotnet-runtime = pkgs.dotnetCorePackages.${dotnet-version}.runtime;
 
-        # ── Dotnet tool runtime version ───────────────────────────────────────
-        # The NuGet tools below were built for net6.0; change if your tools
-        # target a different TFM (e.g. "net8.0")
-        toolTargetFramework = "net6.0";
-
-        # ── Helper: build a dotnet CLI tool from NuGet ────────────────────────
-        # dllOverride: pass null to use toolName as the DLL name, or a string
-        #              to override (e.g. "FSharp.Analyzers.Cli")
-        mkDotnetTool = dllOverride: toolName: let
-          toolVersion =
-            (builtins.fromJSON (builtins.readFile ./.config/dotnet-tools.json))
-            .tools."${toolName}".version;
-          inherit
-            ((builtins.head (
-              builtins.filter (e: e.pname == toolName)
-              ((import ./nix/deps.nix) {fetchNuGet = x: x;})
-            )))
-            sha256
-            ;
-          dllName =
-            if dllOverride == null
-            then toolName
-            else dllOverride;
-        in
-          pkgs.stdenvNoCC.mkDerivation {
-            name = toolName;
-            version = toolVersion;
-            nativeBuildInputs = [pkgs.makeWrapper];
-            src = pkgs.fetchNuGet {
-              pname = toolName;
-              version = toolVersion;
-              inherit sha256;
-              installPhase = ''
-                mkdir -p $out/bin
-                cp -r tools/${toolTargetFramework}/any/* $out/bin
-              '';
-            };
-            installPhase = ''
-              runHook preInstall
-              mkdir -p "$out/lib"
-              cp -r ./bin/* "$out/lib"
-              makeWrapper "${dotnet-runtime}/bin/dotnet" "$out/bin/${toolName}" \
-                --add-flags "$out/lib/${dllName}.dll"
-              runHook postInstall
-            '';
-          };
+        # ── NuGet dependency lock ─────────────────────────────────────────────
+        # This template ships without one, because the deps of a project that
+        # does not exist yet cannot be locked. `null` is not a placeholder: it
+        # is the value that makes `passthru.fetch-deps` exist, which is what
+        # generates the file. Until then there is nothing to build, so
+        # `packages` is empty and the dev shell is the whole template.
+        depsFile =
+          if builtins.pathExists ./nix/deps.json
+          then ./nix/deps.json
+          else if builtins.pathExists ./nix/deps.nix
+          then ./nix/deps.nix
+          else null;
 
         # ── Extra dev tools ───────────────────────────────────────────────────
-        # Add/remove packages for your shell environment
         devTools = with pkgs; [
           git
           alejandra # Nix formatter
+          fantomas # F# formatter
           # nodePackages.prettier
           # just
         ];
       in {
-        # ── Packages ──────────────────────────────────────────────────────────
-        packages = {
-          # F# tools — remove the block entirely if you're using C#
-          fantomas = mkDotnetTool null "fantomas";
-          fsharp-analyzers = mkDotnetTool "FSharp.Analyzers.Cli" "fsharp-analyzers";
-
+        # Present only once `nix/deps.json` exists — see depsFile above.
+        packages = lib.optionalAttrs (depsFile != null) {
           default = pkgs.buildDotnetModule {
             pname = projectName;
             inherit version projectFile testProjectFile dotnet-sdk dotnet-runtime;
             src = ./.;
-            nugetDeps = ./nix/deps.nix; # regenerate: nix build .#default.passthru.fetch-deps && ./result
+            nugetDeps = depsFile;
             doCheck = true;
           };
         };
 
-        # ── Dev shell ─────────────────────────────────────────────────────────
         devShells.default = pkgs.mkShell {
           buildInputs = [dotnet-sdk] ++ devTools;
 
-          # Opt-in: uncomment to disable dotnet telemetry in the shell
-          # DOTNET_CLI_TELEMETRY_OPTOUT = "1";
-
-          # Opt-in: pin DOTNET_ROOT so tools can locate the runtime
-          # DOTNET_ROOT = "${dotnet-sdk}";
+          # Keeps the SDK from writing telemetry and from creating a
+          # ~/.dotnet/ first-run sentinel inside a build sandbox.
+          DOTNET_CLI_TELEMETRY_OPTOUT = "1";
+          DOTNET_NOLOGO = "1";
+          DOTNET_ROOT = "${dotnet-sdk}";
         };
 
-        # ── Formatter (run with `nix fmt`) ────────────────────────────────────
         formatter = pkgs.alejandra;
       }
     );
