@@ -63,7 +63,11 @@ registry=$(nix build --no-link --print-out-paths "$REPO#registry-json" 2>/dev/nu
   exit 2
 }
 
-mapfile -t all < <(jq -r 'keys[]' "$registry")
+# macOS runners have bash 3.2, so no `mapfile` and no `readarray`.
+all=()
+while IFS= read -r line; do
+  all+=("$line")
+done < <(jq -r 'keys[]' "$registry")
 
 if [ ${#selected[@]} -eq 0 ]; then
   names=("${all[@]}")
@@ -115,7 +119,10 @@ for name in "${names[@]}"; do
     continue
   fi
 
-  work=$(mktemp -d -t "tmpl-$name-XXXXXX")
+  # `mktemp -t` means "prefix" on BSD and "template" on GNU, so `-t` with an
+  # XXXXXX template produces tmpl-cpp-XXXXXX.Ab12Cd on macOS. Pass a full path
+  # instead, which both agree on.
+  work=$(mktemp -d "${TMPDIR:-/tmp}/tmpl-$name-XXXXXX")
 
   # dotnet writes ~/.dotnet, npm writes ~/.npm, gradle writes ~/.gradle. Without
   # a redirected HOME the harness mutates the developer's home directory and
@@ -123,6 +130,10 @@ for name in "${names[@]}"; do
   export HOME="$work/home"
   mkdir -p "$HOME"
 
+  # No registry entry sets `unfree` today — every template that needs it sets
+  # config.allowUnfree in its own flake — so this array is normally empty, and
+  # bash before 4.4 treats "${empty[@]}" as an unbound variable under `set -u`.
+  # Hence ${impure[@]+"${impure[@]}"} at each use; macOS runners are bash 3.2.
   impure=()
   if [ "$(field "$name" unfree)" = "true" ]; then
     export NIXPKGS_ALLOW_UNFREE=1
@@ -145,7 +156,7 @@ for name in "${names[@]}"; do
     git -C "$work" init -q >/dev/null 2>&1
     git -C "$work" add -A >/dev/null 2>&1
 
-    if ! (cd "$work" && nix flake check --no-build "${impure[@]}") >/dev/null 2>&1; then
+    if ! (cd "$work" && nix flake check --no-build ${impure[@]+"${impure[@]}"}) >/dev/null 2>&1; then
       ok=0
       step="nix flake check --no-build"
     fi
@@ -154,7 +165,7 @@ for name in "${names[@]}"; do
   if [ $ok -eq 1 ] && [ "$(rank "$tier")" -ge 1 ]; then
     while read -r cmd; do
       [ -n "$cmd" ] || continue
-      if ! (cd "$work" && nix develop "${impure[@]}" --command bash -c "$cmd") >/dev/null 2>&1; then
+      if ! (cd "$work" && nix develop ${impure[@]+"${impure[@]}"} --command bash -c "$cmd") >/dev/null 2>&1; then
         ok=0
         step="nix develop --command $cmd"
         break
@@ -163,7 +174,7 @@ for name in "${names[@]}"; do
   fi
 
   if [ $ok -eq 1 ] && [ "$(rank "$tier")" -ge 2 ]; then
-    if ! (cd "$work" && nix build --no-link "${impure[@]}" '.#default') >/dev/null 2>&1; then
+    if ! (cd "$work" && nix build --no-link ${impure[@]+"${impure[@]}"} '.#default') >/dev/null 2>&1; then
       ok=0
       step="nix build .#default"
     fi

@@ -167,6 +167,10 @@ items are deleted and survivors keep their numbers.
    are sitting at — so a template authored on Linux cannot be verified for
    `aarch64-darwin` or `aarch64-linux` without pushing. Expect the first CI run
    on a new template to find things the harness could not.
+10. **The harness's own bash 3.2 compatibility is unprovable locally.** The
+    macOS runners ship bash 3.2.57 and nixpkgs has no 3.2 to test against, so
+    the constraints in `.claude/rules/harness.md` are held by review and by the
+    darwin legs going green — nothing checks them before a push.
 
 ## 8. Anti-patterns
 

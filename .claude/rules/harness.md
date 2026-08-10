@@ -40,6 +40,22 @@ only needs to *read* the template's files or the registry, it belongs in
 - **Every `FAIL` prints a reproduce line** — the temp dir and the exact command,
   as `verify.sh` does in the sibling repo. `--keep` suppresses cleanup so that
   directory still exists.
+- **It must run on bash 3.2.** The macOS runners ship bash 3.2.57 and the
+  workflow calls `./scripts/test-template.sh` directly, so the script gets the
+  system bash, not a nixpkgs one. That rules out three things a Linux-only
+  author will reach for without thinking:
+
+  | Don't | Do |
+  | --- | --- |
+  | `mapfile -t arr < <(cmd)` | `arr=(); while IFS= read -r l; do arr+=("$l"); done < <(cmd)` |
+  | `"${arr[@]}"` where `arr` may be empty | `${arr[@]+"${arr[@]}"}` — before 4.4 the first is an unbound variable under `set -u` |
+  | `mktemp -d -t "pfx-XXXXXX"` | `mktemp -d "${TMPDIR:-/tmp}/pfx-XXXXXX"` — BSD `-t` takes a prefix, GNU `-t` a template |
+
+  Also absent on 3.2: `declare -A`, `${var^^}` / `${var,,}`, `&>>`, `|&`.
+  Running the script under `nix run .#test` would sidestep all of this, because
+  `writeShellApplication` pins a modern bash — which is exactly why CI does
+  *not* do that. Calling the script directly is what keeps the documented entry
+  point honest on the machine a contributor actually has.
 
 ## Triage: template bug, or upstream drift?
 
