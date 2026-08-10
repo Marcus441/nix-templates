@@ -1,55 +1,21 @@
 {
   description = "project templates";
 
-  outputs = {self}: {
-    templates = {
-      # `nix flake init` with no -t copies templates.default
-      default = self.templates.shell;
-
-      android-kotlin = {
-        path = ./android-kotlin;
-        description = "Dev environment for Android with Kotlin and Jetpack Compose (nixpkgs androidenv)";
-      };
-      cpp = {
-        path = ./cpp;
-        description = "Dev environment for C/C++";
-      };
-      cpp-jetson = {
-        path = ./cpp-jetson;
-        description = "Dev environment for C/C++ on the Jetson platform";
-      };
-      cpp-modern = {
-        path = ./cpp-modern;
-        description = "Dev environment for modern C++ with modules support";
-      };
-      dotnet = {
-        path = ./dotnet;
-        description = "Dev environment with dotnet sdk and runtime";
-      };
-      node = {
-        path = ./node;
-        description = "Dev environment for node.js";
-      };
-      node-rest-api = {
-        path = ./node-rest-api;
-        description = "Dev environment for a node.js rest api";
-      };
-      python-jetson = {
-        path = ./python-jetson;
-        description = "Dev Environment for Python on the jetson platform";
-      };
-      rust = {
-        path = ./rust;
-        description = "Dev environment for a minimal production-ready Rust project";
-      };
-      shell = {
-        path = ./shell;
-        description = "Minimal dev shell to fill in";
-      };
-      typst = {
-        path = ./typst;
-        description = "Dev environment for typst documents";
-      };
+  # These inputs belong to this repository's own tooling — the checks, the
+  # formatter and the test harness. Templates share none of them: each template
+  # is a standalone flake with its own inputs (CLAUDE.md 1).
+  inputs = {
+    nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable";
+    flake-parts.url = "github:hercules-ci/flake-parts";
+    treefmt-nix = {
+      url = "github:numtide/treefmt-nix";
+      inputs.nixpkgs.follows = "nixpkgs";
     };
   };
+
+  outputs = inputs:
+    inputs.flake-parts.lib.mkFlake {inherit inputs;} {
+      systems = ["x86_64-linux" "aarch64-linux" "aarch64-darwin"];
+      imports = [./meta];
+    };
 }

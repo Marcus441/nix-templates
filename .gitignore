@@ -1,2 +1,18 @@
 # Nix artifacts
+#
+# Templates ship unlocked by default so a consumer resolves current nixpkgs on
+# first use. The three re-included below are slow or fragile to resolve and are
+# pinned deliberately — CLAUDE.md 5. Adding a locked template means adding a
+# negation line here, and the lock-policy check enforces that it agrees with
+# `locked` in meta/templates.nix.
 flake.lock
+!/flake.lock
+!/android-kotlin/flake.lock
+!/cpp-jetson/flake.lock
+!/python-jetson/flake.lock
+
+result
+result-*
+.direnv/
+
+.claude/settings.local.json
