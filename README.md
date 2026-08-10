@@ -1,0 +1,57 @@
+# nix-templates
+
+Project templates for `nix flake init`. Each is a standalone flake providing a
+reproducible dev shell, and in most cases a buildable package.
+
+```bash
+nix flake init -t github:Marcus441/nix-templates#rust
+```
+
+With no `#name`, you get `shell` — a minimal dev shell to fill in.
+
+## Templates
+
+| Template | What you get |
+| --- | --- |
+| `shell` | Minimal dev shell to fill in. The default. |
+| `rust` | Minimal production-ready Rust project — `buildRustPackage`, clippy, rustfmt, rust-analyzer, gdb |
+| `cpp` | C++23 — dual clang/gcc toolchains, CMake + Ninja, gtest, clang-tools |
+| `cpp-modern` | As `cpp`, with C++ modules support (LLVM 21) |
+| `cpp-jetson` | C/C++ for the Jetson platform — aarch64 cross-compile, l4t container |
+| `python-jetson` | Python for the Jetson platform — aarch64 cross-compile, l4t container |
+| `node` | Node.js + TypeScript |
+| `node-rest-api` | Node.js REST API — Express-style middleware, vitest |
+| `dotnet` | .NET SDK and runtime, with F# tooling helpers |
+| `android-kotlin` | Android with Kotlin and Jetpack Compose, via nixpkgs `androidenv` |
+| `typst` | Typst documents, with font plumbing |
+
+`nix flake show github:Marcus441/nix-templates` lists them with descriptions.
+
+## After initialising
+
+```bash
+cd my-project
+git init && git add -A     # flakes see only tracked files
+nix develop                # or `direnv allow`, where a .envrc ships
+```
+
+**`git add -A` is not optional.** A flake ignores untracked files, so a fresh
+`nix develop` in an un-initialised directory fails with a confusing error about
+a missing path.
+
+## Pinning
+
+Most templates ship without a `flake.lock`, so the first `nix develop` resolves
+current `nixos-unstable`. Run `nix flake lock` in your new project to pin it.
+
+`android-kotlin`, `cpp-jetson` and `python-jetson` ship a lock, because
+resolving them is slow enough to be worth pinning up front.
+
+## Contributing
+
+The repository has its own conventions and a test harness — see `CLAUDE.md`.
+
+```bash
+nix flake check              # static checks: registry, spelling, hygiene
+./scripts/test-template.sh   # instantiates and tests every template
+```
