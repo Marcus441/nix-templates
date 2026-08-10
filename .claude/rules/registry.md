@@ -50,7 +50,7 @@ prefer renaming the directory.
 | `smoke` | Commands run inside `nix develop` at tier ≥ `shell`. Cheap and specific: `cargo --version`, not `cargo build`. |
 | `systems` | Defaults to the flake's `systems`. Narrow only with a `reason`. |
 | `locked` | Ships a committed `flake.lock`. Must match `.gitignore` — CLAUDE.md §5. |
-| `unfree` | The harness exports `NIXPKGS_ALLOW_UNFREE=1` and adds `--impure`. Not needed when the template sets `config.allowUnfree` itself, as both jetson templates do. |
+| `unfree` | The harness exports `NIXPKGS_ALLOW_UNFREE=1` and adds `--impure`. Not needed when the template sets `config.allowUnfree` in its own `import nixpkgs`, which every template that needs it now does — so no entry sets this today. Prefer fixing the template over setting the flag: `--impure` is a cost the consumer pays too. |
 | `broken` | Failure at this tier is expected and tracked. The harness reports XFAIL instead of FAIL, and reports **XPASS as a failure** if it starts working — so the flag cannot rot. |
 | `reason` | Required when `tier != "build"` or `systems` is narrowed. Say *why it cannot be proven further*, not what the tier is. |
 | `welcomeText` | Almost always leave unset. `standardWelcome` in `registry.nix` builds the post-init message from `description`, and one message across eleven templates is the point. Set it only to say something that text cannot. |
