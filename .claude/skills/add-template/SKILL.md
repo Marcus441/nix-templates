@@ -15,14 +15,15 @@ fails `nix flake check`.
 ## 1. The directory
 
 `<name>/` — the name is the template name, and the registry derives `path` from
-it. Four files are mandatory (Inv. 6, checked):
+it. Five files are mandatory (Inv. 6, checked):
 
 | File | Content |
 | --- | --- |
-| `flake.nix` | Standalone. See `.claude/rules/template-flake-conventions.md` for the canonical preamble — copy it exactly, including the nixpkgs spelling and the `...` ellipsis. |
-| `.envrc` | `use flake` |
-| `.gitignore` | At minimum `result`, `result-*`, `.direnv/`, plus the language's build output |
-| `README.md` | What it gives you, how to start, what to edit. `rust/README.md` is the model. |
+| `flake.nix` | Standalone. See `.claude/rules/template-flake-conventions.md` for the canonical preamble — copy it exactly, including the nixpkgs spelling, the `systems` list and the `...` ellipsis. |
+| `.editorconfig` | Copy the `[*]` block from `cpp/.editorconfig` verbatim, then append only the block the language needs (4 spaces for Python/Kotlin/C#, a line length otherwise). No language block at all if 2 spaces is right. |
+| `.envrc` | `use flake`, plus a `PATH_add` only where it earns one — `node_modules/.bin`, `build` |
+| `.gitignore` | Must **open** with the four-line Nix block (`# Nix`, `result`, `result-*`, `.direnv/`), then the language's build output |
+| `README.md` | Opens with `# <name>`, and must have a `## Building` section. `rust/README.md` is the model. |
 
 The flake **cannot** reference anything outside this directory (Inv. 1). If it
 looks like it wants to share code with an existing template, it can't — copy the
@@ -34,11 +35,15 @@ code and record the duplication in CLAUDE.md §7.
 
 ```nix
 <name> = {
-  description = "Dev environment for …";   # required
+  description = "Dev environment for …";   # required, and the flake must match
   tier = "build";                          # what CI can actually prove
   smoke = ["<tool> --version"];            # at tier >= shell
 };
 ```
+
+`description` has to be **identical** to the one in the template's `flake.nix` —
+`description-agrees` checks it. So does `systems`: whatever you put here has to
+appear verbatim as the `systems` line in the flake.
 
 Choose the **highest tier that honestly passes**:
 
@@ -46,8 +51,10 @@ Choose the **highest tier that honestly passes**:
   with no network. Preferred.
 - `shell` — dev-shell-only template, or the package needs user scaffolding
   first. Needs a `reason`.
-- `eval` — unfree, cross-compiled, or network-dependent. Needs a `reason`, and
-  usually `systems`, `unfree` and `locked` too.
+- `eval` — cross-compiled or network-dependent. Needs a `reason`, and usually
+  `systems` and `locked` too. Unfree is *not* a reason to sit here: set
+  `config.allowUnfree = true` in the flake's own `import nixpkgs` and the
+  template evaluates purely.
 
 `reason` is required below `build` or with narrowed `systems`, and must say *why
 it cannot be proven further* — "unfree Android SDK; gradle build needs network",

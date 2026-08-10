@@ -19,20 +19,27 @@ With no `#name`, you get `shell` — a minimal dev shell to fill in.
 | `cpp-modern` | As `cpp`, with C++ modules support (LLVM 21) |
 | `cpp-jetson` | C/C++ for the Jetson platform — aarch64 cross-compile, l4t container |
 | `python-jetson` | Python for the Jetson platform — aarch64 cross-compile, l4t container |
-| `node` | Node.js + TypeScript |
-| `node-rest-api` | Node.js REST API — Express-style middleware, vitest |
+| `node` | Node.js + TypeScript, built with `buildNpmPackage` |
+| `node-rest-api` | Node.js REST API — Express 5 middleware layout, vitest |
 | `dotnet` | .NET SDK and runtime, with F# tooling helpers |
 | `android-kotlin` | Android with Kotlin and Jetpack Compose, via nixpkgs `androidenv` |
 | `typst` | Typst documents, with font plumbing |
 
 `nix flake show github:Marcus441/nix-templates` lists them with descriptions.
 
+Every template ships the same boilerplate — `.editorconfig`, `.envrc`,
+`.gitignore` and a `README.md` with a `## Building` section — and the same flake
+shape: one `nixpkgs` input, an explicit `systems` list, a `forAllSystems`
+helper, and a `formatter` output so `nix fmt` works in the project you generate.
+
 ## After initialising
+
+`nix flake init` prints what to do next. In short:
 
 ```bash
 cd my-project
 git init && git add -A     # flakes see only tracked files
-nix develop                # or `direnv allow`, where a .envrc ships
+nix develop                # or `direnv allow`
 ```
 
 **`git add -A` is not optional.** A flake ignores untracked files, so a fresh
@@ -46,6 +53,10 @@ current `nixos-unstable`. Run `nix flake lock` in your new project to pin it.
 
 `android-kotlin`, `cpp-jetson` and `python-jetson` ship a lock, because
 resolving them is slow enough to be worth pinning up front.
+
+`node` and `node-rest-api` also ship a `package-lock.json`, which `nix build`
+consumes through `buildNpmPackage` — change a dependency and you refresh both
+the lock and the `npmDepsHash` in `flake.nix`. Their READMEs say how.
 
 ## Contributing
 

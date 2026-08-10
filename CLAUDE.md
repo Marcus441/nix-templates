@@ -27,12 +27,17 @@ deliberately not. The reasoning is in §2 — do not "fix" the inconsistency.
    `config.flake.templates` is the output.** One word apart.
 3. **Every template directory is registered; every registry entry has a
    directory.** Checked.
-4. **Templates use plain `flake-utils`.** Never introduce flake-parts,
-   import-tree, devenv or snowfall *into a template*. A template must be
-   readable by someone who has never seen this repo.
+4. **A template's only input is nixpkgs, and it iterates systems itself** —
+   a four-line `forAllSystems` over `nixpkgs.lib.genAttrs`, with the `systems`
+   list written out and checked against the registry. Never introduce
+   `flake-utils`, flake-parts, import-tree, devenv or snowfall *into a
+   template*. A template must be readable by someone who has never seen this
+   repo. Checked; `docs/decisions/no-flake-utils.md`.
 5. **One nixpkgs spelling:** `github:nixos/nixpkgs/nixos-unstable`. Checked.
-6. **Every template ships `.envrc`, `.gitignore`, `README.md` and a
-   `description`.** Checked.
+6. **Every template ships `.editorconfig`, `.envrc`, `.gitignore`, `README.md`
+   and a `description`.** The `.gitignore` opens with the four-line Nix block;
+   the README opens with `# <template-name>` and has a `## Building` section;
+   the `description` equals the registry's. All checked.
 7. **`meta/` is flake-parts; templates are not.** The two never mix.
 
 ## 2. Mental model
@@ -134,6 +139,11 @@ a negation line.
 - **`android-kotlin/.github/workflows/ci.yml` is payload,** shipped inside the
   template so generated repos inherit it. GitHub runs only root workflows, so it
   has never run here. Do not consolidate it. `.claude/rules/ci.md`.
+- **A broad `treefmt` exclusion hides a template from the formatter.**
+  `android-kotlin/**` was excluded to keep shfmt off the vendored Gradle
+  wrapper, and silently exempted that template's `flake.nix` from alejandra for
+  as long as it existed — `checks.treefmt` stayed green because it was not
+  looking. Scope exclusions to the files that need them.
 
 ```bash
 git add -A && nix flake check      # static layer — seconds
@@ -147,27 +157,31 @@ git add -A && nix flake check      # static layer — seconds
 the same change, or state why not. Item numbers are stable identities — closed
 items are deleted and survivors keep their numbers.
 
-1. **Both jetson templates are `broken = true`** — `packages.<system>.arm64.app`
-   nests one level deeper than the flake schema allows, and
-   `python-jetson/pyproject.toml` is empty. Issue #1. They report XFAIL, so
-   nothing about them is proven beyond the dev shell.
 2. **`cpp-jetson` and `python-jetson` duplicate ~20 lines verbatim** — the
    l4t-base container block, its digest and sha256. Inv. 1 forbids extracting
    them; the duplication is permanent and must stay in sync by hand.
 4. **`cpp` and `cpp-modern` share ~45 lines** of toolchain scaffold. Same
    constraint as item 2.
-6. **No macOS CI.** `systems` includes `aarch64-darwin` but nothing proves it,
-   so a darwin-only breakage would ship.
-7. **`node-rest-api` ships no lock despite pinned npm dependencies.** Its
-   `package.json` pins Express 5 and vitest 3, but the dev shell only provides
-   Node — so `npm install` resolves fresh and the template is only as
-   reproducible as the registry it hits.
+8. **`aarch64-linux` is claimed by ten templates and tested by none.** It is in
+   every unnarrowed `systems` list and the CI matrix has no runner that can host
+   it, so a breakage there ships. The job summary prints every such claim.
+   Closing it means GitHub's `ubuntu-24.04-arm` runners — free only for public
+   repositories — or dropping the system from `systems`, but only if it
+   genuinely does not apply. `.claude/rules/ci.md`.
+9. **Nothing checks that a template's dev shell opens on darwin before it is
+   claimed.** The macOS legs added in §6 prove it after the fact, on push. A
+   template authored locally on Linux still cannot be verified for
+   `aarch64-darwin` without pushing.
 
 ## 8. Anti-patterns
 
 | Anti-pattern | Why |
 | --- | --- |
-| flake-parts / import-tree inside a template | Inv. 4 — a template must read standalone |
+| flake-utils / flake-parts / import-tree inside a template | Inv. 4 — a template must read standalone, on one input |
+| A comment in a template's `flake.nix` | It belongs in that template's README — `.claude/rules/template-flake-conventions.md` |
+| A `shellHook` that only prints a banner | A subprocess on every `nix develop` and every direnv reload, for what the README already says |
+| `buildInputs` / `nativeBuildInputs` in a `mkShell`, or a bare `FOO = "…"` env var | One spelling per job: `packages` and `env = {…}` |
+| A `systems` list that disagrees with the registry | Inv. 4 — the template would claim a platform nothing tests |
 | A template importing `../` or `../../shared` | Inv. 1 — the copy would dangle |
 | Hand-written `flake.templates` | Inv. 2 — it is derived |
 | Extracting a shared `lib/` for templates to import | Inv. 1 — impossible, not merely discouraged |
@@ -184,8 +198,8 @@ items are deleted and survivors keep their numbers.
 - **Rationale in the commit message,** not in comments. A decision that recurs
   goes in `docs/decisions/`.
 - **Adding a template is one move** — use the **add-template** skill. Directory,
-  standalone flake, `.envrc`/`.gitignore`/README, registry entry with tier and
-  reason, then run the harness.
+  standalone flake, `.editorconfig`/`.envrc`/`.gitignore`/README, registry entry
+  with tier and reason, then run the harness.
 - **No unrequested changes.** No package bumps, no nixpkgs bumps, no
   reformatting a template the current task does not touch. A template someone
   depends on is not a scratchpad.
@@ -194,6 +208,8 @@ items are deleted and survivors keep their numbers.
 - **Do not re-propose:** the dendritic pattern for this repo (§2); a shared
   library for templates (Inv. 1 makes it impossible); moving
   `android-kotlin/.github/workflows/ci.yml` to the repo root — it lives inside
-  the template *so generated repos inherit it*, and has never run here.
+  the template *so generated repos inherit it*, and has never run here;
+  reintroducing `flake-utils` to shorten the `forAllSystems` helper — the
+  duplication is the design, `docs/decisions/no-flake-utils.md`.
 - **If a request genuinely doesn't fit,** say so and give options with their
   costs. Do not silently bend an invariant.
