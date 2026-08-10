@@ -1,5 +1,5 @@
 {
-  description = "Dev environment for modern C++ with modules support";
+  description = "Dev environment for production C++ with modules";
 
   inputs = {
     nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable";
@@ -16,12 +16,10 @@
         system: f (import nixpkgs {inherit system;})
       );
 
-    project = "myproject";
-    binary = "my-project";
-    llvmVersion = "21";
+    binary = "myproject";
 
     toolchains = pkgs: let
-      llvm = pkgs."llvmPackages_${llvmVersion}";
+      llvm = pkgs.llvmPackages;
     in {
       clang = {
         inherit (llvm) stdenv;
@@ -37,7 +35,7 @@
 
     mkPackage = pkgs: toolchain:
       toolchain.stdenv.mkDerivation {
-        pname = project;
+        pname = binary;
         version = "0.1.0";
         src = ./.;
 
@@ -49,14 +47,10 @@
           ]
           ++ toolchain.buildTools;
 
-        buildInputs = [];
-
         checkInputs = [pkgs.gtest];
 
         cmakeFlags = [
           "-DCMAKE_BUILD_TYPE=Release"
-          "-DUSE_SANITIZERS=OFF"
-          "-DFETCHCONTENT_FULLY_DISCONNECTED=ON"
         ];
 
         doCheck = true;
@@ -67,9 +61,15 @@
 
     mkDevShell = pkgs: name: toolchain:
       (pkgs.mkShell.override {inherit (toolchain) stdenv;}) {
-        name = "cpp-modern-${name}";
+        name = "cpp-prod-modern-${name}";
         inputsFrom = [(mkPackage pkgs toolchain)];
-        packages = [pkgs."llvmPackages_${llvmVersion}".clang-tools] ++ toolchain.shellTools;
+        packages =
+          [
+            pkgs.llvmPackages.clang-tools
+            pkgs.cpplint
+            pkgs.gcovr
+          ]
+          ++ toolchain.shellTools;
       };
   in {
     packages = forAllSystems (

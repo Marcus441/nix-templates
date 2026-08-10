@@ -24,16 +24,16 @@
       reason = "packages.app-aarch64 is a cross build with no binary cache, and packages.container pulls an l4t image from nvcr.io — neither fits in CI";
     };
 
-    cpp-modern = {
-      description = "Dev environment for modern C++ with modules support";
-      tier = "build";
-      smoke = ["cmake --version" "clangd --version"];
-    };
-
     cpp-prod = {
       description = "Dev environment for production C/C++";
       tier = "build";
       smoke = ["cmake --version" "clangd --version" "clang-tidy --version" "gcovr --version"];
+    };
+
+    cpp-prod-modern = {
+      description = "Dev environment for production C++ with modules";
+      tier = "build";
+      smoke = ["cmake --version" "clangd --version" "gcovr --version"];
     };
 
     cpp-simple = {
