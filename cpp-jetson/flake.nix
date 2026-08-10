@@ -27,16 +27,16 @@
   in {
     packages = forAllSystems (pkgs: let
       pkgsArm = pkgs.pkgsCross.aarch64-multiplatform;
-      inherit (nix2container.packages.${pkgs.system}) nix2container;
+      n2c = nix2container.packages.${pkgs.system}.nix2container;
 
-      l4t-base = nix2container.pullImage {
+      l4t-base = n2c.pullImage {
         imageName = "nvcr.io/nvidia/l4t-base";
         imageDigest = "sha256:4646e1dd2f26e8de5f2f8776bb02a403bef0148fd7e4d860f836bb858fc5b1cd";
         sha256 = "sha256-snLOWzQsQKS67AfO94j/Cpstr1qVxCvRMQPgMf6SikY=";
         arch = "aarch64-linux";
       };
     in {
-      arm64.app = pkgsArm.stdenv.mkDerivation {
+      app-aarch64 = pkgsArm.stdenv.mkDerivation {
         pname = "jetson-bin";
         version = "0.1.0";
         src = ./.;
@@ -51,6 +51,7 @@
           pkgsArm.blas
           pkgsArm.lapack
           pkgsArm.eigen
+          pkgsArm.g2o
           pkgsArm.ceres-solver
         ];
 
@@ -62,10 +63,10 @@
         meta.mainProgram = "jetson-bin";
       };
 
-      container = nix2container.buildImage {
+      container = n2c.buildImage {
         name = "jetson-container";
         fromImage = l4t-base;
-        copyToRoot = [self.packages.${pkgs.system}.arm64.app];
+        copyToRoot = [self.packages.${pkgs.system}.app-aarch64];
         config = {
           WorkingDir = "/app";
           Cmd = ["/app/bin/jetson-bin"];

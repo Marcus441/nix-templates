@@ -18,10 +18,10 @@
 
     cpp-jetson = {
       description = "Dev environment for C/C++ on the Jetson platform";
-      tier = "eval";
+      tier = "shell";
       locked = true;
-      broken = true;
-      reason = "packages.arm64.app is a nested attrset, which the flake schema rejects (issue #1)";
+      smoke = ["cmake --version" "g++ --version"];
+      reason = "packages.app-aarch64 is a cross build with no binary cache, and packages.container pulls an l4t image from nvcr.io — neither fits in CI";
     };
 
     cpp-modern = {
@@ -53,10 +53,10 @@
 
     python-jetson = {
       description = "Dev environment for Python on the Jetson platform";
-      tier = "eval";
+      tier = "shell";
       locked = true;
-      broken = true;
-      reason = "packages.arm64.app is a nested attrset, and pyproject.toml is empty (issue #1)";
+      smoke = ["python3 --version"];
+      reason = "packages.app-aarch64 is a cross build with no binary cache, and packages.container pulls an l4t image from nvcr.io — neither fits in CI";
     };
 
     rust = {

@@ -3,11 +3,6 @@
 Dev environment for C/C++ on the Jetson platform — a host dev shell, an aarch64
 cross-compiled binary, and an l4t-based container image.
 
-> **Known broken.** `packages.<system>.arm64.app` nests one level deeper than
-> the flake schema allows (`packages.<system>` must be an attrset of
-> derivations), so `nix flake check` rejects this flake. Tracked in this
-> repository's issue tracker; the dev shell itself works.
-
 ```bash
 nix flake init -t github:Marcus441/nix-templates#cpp-jetson
 git init && git add -A     # flakes see only tracked files
@@ -19,7 +14,7 @@ nix develop                # or: direnv allow
 | Output | |
 | --- | --- |
 | `devShells.default` | gcc, cmake, eigen, `ceres-solver.dev` — builds for the host |
-| `packages.arm64.app` | the same source cross-compiled via `pkgsCross.aarch64-multiplatform` |
+| `packages.app-aarch64` | the same source cross-compiled via `pkgsCross.aarch64-multiplatform` |
 | `packages.container` | an image layered on `nvcr.io/nvidia/l4t-base`, pinned by digest |
 
 `config.allowUnfree = true` is set inside the flake, so nothing extra is needed
@@ -36,9 +31,14 @@ cmake -S . -B build && cmake --build build
 Cross-compiled, and the container image:
 
 ```bash
-nix build .#arm64.app        # aarch64 binary, built on x86_64
+nix build .#app-aarch64      # aarch64 binary, built on x86_64
 nix build .#container        # image to load on the Jetson
 ```
+
+Neither is proven in CI. The cross build has no binary cache behind it, so it
+compiles Eigen, Ceres, g2o and SuiteSparse from source, and the container needs
+a registry pull from `nvcr.io`. Expect the first `nix build .#app-aarch64` to
+take a long time.
 
 Cross-compilation is emulation-free — it is a real aarch64 toolchain — but
 anything that runs a build-time binary needs the `nativeBuildInputs` /
@@ -54,6 +54,10 @@ the dev shell, or on the Jetson itself.
 
 ## Notes
 
+- `CMakeLists.txt` calls `find_package(g2o REQUIRED)`, so `pkgsArm.g2o` is in
+  `buildInputs`. Drop both together if you do not need g2o — a `find_package`
+  with no matching input fails at configure time, not at evaluation, so the
+  flake looks fine right up until you build it.
 - **Keeping the l4t pin current.** The base image is pinned by digest and
   sha256, both spelled out in `flake.nix`. The identical block appears in the
   `python-jetson` template; templates are copied verbatim and cannot share code,
