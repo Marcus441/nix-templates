@@ -57,6 +57,15 @@
         description = "Failure at this tier is expected and tracked. CLAUDE.md 7.";
       };
 
+      # Printed by `nix flake init -t` once the copy is done. Left null so the
+      # standard text below applies; set it only when a template needs to say
+      # something the standard text cannot.
+      welcomeText = mkOption {
+        type = types.nullOr types.lines;
+        default = null;
+        description = "Overrides the standard post-init message.";
+      };
+
       path = mkOption {
         type = types.path;
         default = ../. + "/${name}";
@@ -66,7 +75,34 @@
     };
   });
 
-  mapped = lib.mapAttrs (_: t: {inherit (t) path description;}) config.templates;
+  # `nix flake init` is the one moment a consumer is guaranteed to be looking,
+  # and the first thing they hit is that a flake ignores untracked files. Say
+  # it here rather than leaving it to a README they have not opened yet.
+  standardWelcome = name: t: ''
+    # ${name}
+
+    ${t.description}
+
+    A flake only sees files that git tracks, so initialise the repository
+    before entering the shell:
+
+    ```
+    git init && git add -A
+    nix develop            # or: direnv allow
+    ```
+
+    `README.md` covers building, testing and what to change first.
+  '';
+
+  mapped =
+    lib.mapAttrs (name: t: {
+      inherit (t) path description;
+      welcomeText =
+        if t.welcomeText != null
+        then t.welcomeText
+        else standardWelcome name t;
+    })
+    config.templates;
 in {
   options = {
     templates = mkOption {

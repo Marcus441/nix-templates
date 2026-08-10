@@ -53,6 +53,7 @@ prefer renaming the directory.
 | `unfree` | The harness exports `NIXPKGS_ALLOW_UNFREE=1` and adds `--impure`. Not needed when the template sets `config.allowUnfree` itself, as both jetson templates do. |
 | `broken` | Failure at this tier is expected and tracked. The harness reports XFAIL instead of FAIL, and reports **XPASS as a failure** if it starts working — so the flag cannot rot. |
 | `reason` | Required when `tier != "build"` or `systems` is narrowed. Say *why it cannot be proven further*, not what the tier is. |
+| `welcomeText` | Almost always leave unset. `standardWelcome` in `registry.nix` builds the post-init message from `description`, and one message across eleven templates is the point. Set it only to say something that text cannot. |
 
 `broken` and a narrowed `systems` say different things and must not be
 substituted for each other. `systems = ["x86_64-linux"]` means *this template
