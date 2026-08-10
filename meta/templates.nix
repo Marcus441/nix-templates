@@ -39,16 +39,14 @@
 
     node = {
       description = "Dev environment for Node.js";
-      tier = "shell";
+      tier = "build";
       smoke = ["node --version" "npm --version"];
-      reason = "dev-shell-only template; there is no package output to build";
     };
 
     node-rest-api = {
       description = "Dev environment for a Node.js REST API";
-      tier = "shell";
+      tier = "build";
       smoke = ["node --version" "npm --version"];
-      reason = "dev-shell-only template; there is no package output to build";
     };
 
     python-jetson = {

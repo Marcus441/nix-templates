@@ -18,8 +18,14 @@ npm install
 ## Building
 
 ```bash
-npm run build      # tsc -> dist/, via tsconfig.build.json
+npm run build      # tsc -> dist/
 npm run dev        # tsx src/index.ts, no build step
+```
+
+Or build the Nix package, which runs `npm ci` and `npm run build` in a sandbox:
+
+```bash
+nix build
 ```
 
 ## Testing
@@ -41,6 +47,17 @@ than left to rot, so the version you get is one you can still patch.
 
 ## Notes
 
+- **`package-lock.json` is committed, and `nix build` depends on it.**
+  `buildNpmPackage` fetches dependencies as a fixed-output derivation keyed by
+  `npmDepsHash` in `flake.nix`. After changing any dependency, refresh both:
+
+  ```bash
+  npm install --package-lock-only
+  nix run nixpkgs#prefetch-npm-deps -- package-lock.json
+  ```
+
+  Paste the printed hash into `npmDepsHash`. A stale hash fails the build with
+  the correct one in the error, so you can also just build and copy it.
 - npm ships inside the `nodejs` derivation; there is no separate package for it.
   `pkgs.nodePackages` no longer exists in nixpkgs, so install CLI tools from the
   top level (`pkgs.typescript-language-server`) or as project devDependencies.

@@ -12,6 +12,18 @@
         system: f (import nixpkgs {inherit system;})
       );
   in {
+    packages = forAllSystems (pkgs: {
+      default = pkgs.buildNpmPackage {
+        pname = "my-project";
+        version = "1.0.0";
+        src = ./.;
+
+        nodejs = pkgs.nodejs_24;
+        npmDepsHash = "sha256-8Gn3KfBLwzYj/dG3trcq/KuQKd+9NtE8MGn6nA0EJFM=";
+        npmBuildScript = "build";
+      };
+    });
+
     devShells = forAllSystems (pkgs: {
       default = pkgs.mkShellNoCC {
         name = "node-rest-api";

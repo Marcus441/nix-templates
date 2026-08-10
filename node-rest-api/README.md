@@ -31,9 +31,15 @@ Dependencies: `express`, `cors`, `dotenv`, `jsonwebtoken`,
 ## Building
 
 ```bash
-npm run build      # tsc -> dist/, via tsconfig.build.json
+npm run build      # tsc -> dist/
 npm run dev        # tsx src/index.ts, no build step
 npm start          # nodemon, config in nodemon.json
+```
+
+Or build the Nix package, which runs `npm ci` and `npm run build` in a sandbox:
+
+```bash
+nix build
 ```
 
 ## Testing
@@ -46,6 +52,17 @@ npm test           # vitest --coverage
 
 - Middleware order matters: `routeNotFound` must stay registered last, and
   `errorHandler` after the routes it catches for.
+- **`package-lock.json` is committed, and `nix build` depends on it.**
+  `buildNpmPackage` fetches dependencies as a fixed-output derivation keyed by
+  `npmDepsHash` in `flake.nix`. After changing any dependency, refresh both:
+
+  ```bash
+  npm install --package-lock-only
+  nix run nixpkgs#prefetch-npm-deps -- package-lock.json
+  ```
+
+  Paste the printed hash into `npmDepsHash`. A stale hash fails the build with
+  the correct one in the error, so you can also just build and copy it.
 - npm ships inside the `nodejs` derivation; there is no separate package for it.
   Change the Node major on one line in `flake.nix`.
 - `.envrc` adds `node_modules/.bin` to `PATH`, so locally-installed CLIs resolve
