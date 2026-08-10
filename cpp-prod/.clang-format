@@ -1,0 +1,38 @@
+---
+Language:        Cpp
+BasedOnStyle:    Chromium
+Standard:        Latest
+ColumnLimit:     100
+IndentWidth:     2
+ContinuationIndentWidth: 4
+DerivePointerAlignment:  false
+PointerAlignment: Left
+
+AlignAfterOpenBracket: Align
+AlignOperands:         Align
+AlignTrailingComments:
+  Kind:          Always
+  OverEmptyLines: 1
+
+AllowShortFunctionsOnASingleLine: Empty
+AllowShortIfStatementsOnASingleLine: false
+AllowShortLoopsOnASingleLine: false
+
+MaxEmptyLinesToKeep:              1
+KeepEmptyLinesAtTheStartOfBlocks: false
+SpaceBeforeRangeBasedForLoopColon: true
+
+RequiresClausePosition:         OwnLine
+RequiresExpressionIndentation:  OuterScope
+LambdaBodyIndentation:          Signature
+PackConstructorInitializers:    NextLine
+
+IncludeBlocks: Regroup
+IncludeCategories:
+  - Regex:    '^<.*\.h>'
+    Priority: 1
+  - Regex:    '^<.*'
+    Priority: 2
+  - Regex:    '.*'
+    Priority: 3
+...

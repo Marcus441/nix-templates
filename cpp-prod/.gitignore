@@ -1,0 +1,38 @@
+# Nix
+result
+result-*
+.direnv/
+
+# Build output
+Testing/
+build/
+bin/
+out/
+*.o
+*.a
+*.so
+*.dylib
+*.exe
+*.elf
+compile_commands.json
+.ninja_*
+CMakeUserPresets.json
+
+# Sanitizers and coverage
+asan.log.*
+ubsan.log.*
+gmon.out
+*.gcda
+*.gcno
+*.gcov
+
+# Editors / OS
+.cache/
+.clangd/
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+
+.env

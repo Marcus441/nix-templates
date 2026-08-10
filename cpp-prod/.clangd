@@ -1,0 +1,6 @@
+CompileFlags:
+  CompilationDatabase: build/dev
+InlayHints:
+  Enabled: true
+Diagnostics:
+  UnusedIncludes: Strict
