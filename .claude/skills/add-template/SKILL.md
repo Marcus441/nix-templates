@@ -64,9 +64,10 @@ not "eval only".
 
 Default `locked = false`; the template resolves current nixpkgs on first use.
 
-Set `locked = true` only when resolution is slow or fragile (the bar the three
-existing locked templates meet). Then also add the negation line to
-`.gitignore`:
+Set `locked = true` only when resolution is slow or fragile. No template meets
+that bar today, so a new one almost certainly does not either — and being the
+only locked template means being the only one the weekly drift run cannot speak
+for. If it is warranted, also add the negation line to `.gitignore`:
 
 ```gitignore
 !/<name>/flake.lock

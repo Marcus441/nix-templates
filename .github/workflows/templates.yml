@@ -10,9 +10,9 @@ on:
   push:
     branches: [main]
   pull_request:
-  # Eight templates ship unlocked, so upstream nixpkgs can break one with no
-  # commit in this repository. Without this, the first to find out is a
-  # consumer running `nix flake init`.
+  # Every template ships unlocked, so upstream nixpkgs can break one with no
+  # commit in this repository. Nothing is pinned, so this run is the only thing
+  # between drift and a consumer running `nix flake init` finding it first.
   schedule:
     - cron: "17 5 * * 1"
   workflow_dispatch:

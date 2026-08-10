@@ -54,7 +54,7 @@ Re-run the harness afterwards; the copy proves nothing.
 
 ## Is it the template, or upstream?
 
-Eight templates are unlocked (CLAUDE.md §5), so they resolve nixpkgs fresh and
+Every template is unlocked (CLAUDE.md §5), so they all resolve nixpkgs fresh and
 can break with no commit in this repo. Check before editing:
 
 ```bash

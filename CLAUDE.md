@@ -101,25 +101,33 @@ one is not an improvement at six files.
 
 | Locked (committed `flake.lock`) | Unlocked |
 | --- | --- |
-| `android-kotlin` | the other ten |
+| — none today | all eleven |
 
-Locked where resolution is slow or fragile. Unlocked elsewhere so consumers get
-current nixpkgs on first use. Only `android-kotlin` meets that bar today, but
-the policy is still a hybrid rather than "everything unlocked" — the machinery
-and the `lock-policy` check stay, because the next slow-resolving template
-should not have to reintroduce them.
+Unlocked so consumers get current nixpkgs on first use. The bar for locking is
+resolution being slow or fragile, and **nothing meets it right now** —
+`android-kotlin` was the last locked template and its pin bought little: it is
+`tier = "eval"`, so what the lock froze was an evaluation the weekly cron
+re-runs anyway.
+
+The policy stays a hybrid rather than "everything unlocked": the `locked` field,
+the `.gitignore` negation mechanism and the `lock-policy` check all remain, so
+the next slow-resolving template does not have to reintroduce them. Locking one
+is a small change and the **update-locks** skill spells it out.
 
 Consequences, both of which bite:
 
 - **An unlocked template can break with no commit in this repo.** A red harness
-  run may be upstream drift. Triage before editing — §6.
+  run may be upstream drift. Triage before editing — §6. With nothing locked,
+  the weekly scheduled run is the *only* thing between upstream drift and a
+  consumer finding it.
 - **Updating a locked template's lock changes what consumers get.** It is a
   consumer-facing change and belongs in its own commit with a rationale. Bare
-  `nix flake update` is hook-blocked.
+  `nix flake update` is hook-blocked — it would also move the root lock, which
+  is tracked.
 
-`.gitignore` ignores `flake.lock` repo-wide and re-includes the two that are
-tracked (the one above plus the root's). Adding a locked template means adding a
-negation line.
+`.gitignore` ignores `flake.lock` repo-wide and re-includes exactly one: the
+root's, which belongs to this repo's own flake. Locking a template means adding
+a negation line.
 
 ## 6. Hazards and verification
 

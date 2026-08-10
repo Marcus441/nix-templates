@@ -48,11 +48,9 @@ a missing path.
 
 ## Pinning
 
-Most templates ship without a `flake.lock`, so the first `nix develop` resolves
-current `nixos-unstable`. Run `nix flake lock` in your new project to pin it.
-
-`android-kotlin` ships a lock, because resolving it is slow enough to be worth
-pinning up front.
+Templates ship without a `flake.lock`, so the first `nix develop` resolves
+current `nixos-unstable`. Run `nix flake lock` in your new project to pin it —
+that pin is yours, and nothing here moves it afterwards.
 
 `node` and `node-rest-api` also ship a `package-lock.json`, which `nix build`
 consumes through `buildNpmPackage` — change a dependency and you refresh both

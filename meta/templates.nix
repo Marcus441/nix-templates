@@ -5,7 +5,6 @@
     android-kotlin = {
       description = "Dev environment for Android with Kotlin and Jetpack Compose (nixpkgs androidenv)";
       tier = "eval";
-      locked = true;
       systems = ["x86_64-linux"];
       reason = "unfree Android SDK, and a gradle build needs network";
     };

@@ -63,7 +63,7 @@ only needs to *read* the template's files or the registry, it belongs in
 
 ## Triage: template bug, or upstream drift?
 
-Eight templates are unlocked (CLAUDE.md §5), so a red run may have nothing to do
+Every template is unlocked (CLAUDE.md §5), so a red run may have nothing to do
 with the current change. Before editing anything, re-run against a known-good
 nixpkgs:
 

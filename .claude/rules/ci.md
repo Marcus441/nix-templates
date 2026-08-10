@@ -52,10 +52,11 @@ so nothing collides if that decision is ever revisited.
 
 ## A red scheduled run usually is not the last commit
 
-Eight templates ship unlocked, so the weekly cron tests today's nixpkgs against
-last month's template. A failure there is upstream drift far more often than a
-regression, and the `drift` job files or updates a single labelled issue rather
-than leaving a red badge nobody watches.
+Every template ships unlocked, so the weekly cron tests today's nixpkgs against
+last month's template — and with nothing pinned, that cron is the only thing
+standing between upstream drift and a consumer finding it. A failure there is
+upstream drift far more often than a regression, and the `drift` job files or
+updates a single labelled issue rather than leaving a red badge nobody watches.
 
 Triage with `.claude/skills/test-template/SKILL.md` before editing anything. The
 fix belongs in the template — never in the harness, and never by lowering a
