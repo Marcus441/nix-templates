@@ -15,8 +15,10 @@ With no `#name`, you get `shell` — a minimal dev shell to fill in.
 | --- | --- |
 | `shell` | Minimal dev shell to fill in. The default. |
 | `rust` | Minimal production-ready Rust project — `buildRustPackage`, clippy, rustfmt, rust-analyzer, gdb |
-| `cpp` | C++23 — dual clang/gcc toolchains, CMake + Ninja, gtest, clang-tools |
-| `cpp-modern` | As `cpp`, with C++ modules support (LLVM 21) |
+| `cpp-simple` | C++23 for learning — a plain Makefile, no CMake, no test framework |
+| `cpp` | C++23 — CMake + Ninja presets, ASan/UBSan, `ctest` with no test framework |
+| `cpp-prod` | Production C++23 — library/exe split, gtest, ASan/UBSan/TSan/coverage profiles, CI |
+| `cpp-prod-modern` | As `cpp-prod`, with the library exposed as a C++23 module |
 | `cpp-jetson` | C/C++ for the Jetson platform — aarch64 cross-compile, l4t container |
 | `python-jetson` | Python for the Jetson platform — aarch64 cross-compile, l4t container |
 | `node` | Node.js + TypeScript, built with `buildNpmPackage` |
