@@ -42,7 +42,7 @@ and, more importantly, teaches the reader a second idiom for no reason.
 Take `self` as the first argument **only** when it is used —
 `inputsFrom = [self.packages.${pkgs.stdenv.hostPlatform.system}.default]` is the
 usual reason. `forAllSystems` passes `pkgs`, not `system`, so that the helper is
-one argument in all twelve templates; recover the system from `pkgs` rather than
+one argument in all eleven templates; recover the system from `pkgs` rather than
 threading a second argument through. Spell it
 `pkgs.stdenv.hostPlatform.system` — **not `pkgs.system`**, which nixpkgs now
 deprecates and warns about on every `nix develop`, in the consumer's project

@@ -2,7 +2,7 @@
 
 This repository publishes **project templates** consumed by
 `nix flake init -t github:Marcus441/nix-templates#<name>`. Its product is not a
-configuration — it is twelve standalone flakes that other people copy. That one
+configuration — it is eleven standalone flakes that other people copy. That one
 fact drives every rule below. If a change would violate an invariant, stop and
 say so.
 
@@ -50,7 +50,7 @@ nixpkgs. It exists to *describe and test* the templates. `flake.templates` is
 `mapAttrs` over `config.templates`; adding a registry entry is what publishes a
 template.
 
-**The templates** are twelve unrelated flakes that happen to live in one git
+**The templates** are eleven unrelated flakes that happen to live in one git
 repo. They share no code and cannot. They are the artifact.
 
 flake-parts is used **only** for the registry, and only because `perSystem` is
@@ -107,7 +107,7 @@ one is not an improvement at six files.
 
 | Locked (committed `flake.lock`) | Unlocked |
 | --- | --- |
-| — none today | all twelve |
+| — none today | all eleven |
 
 Unlocked so consumers get current nixpkgs on first use. The bar for locking is
 resolution being slow or fragile, and **nothing meets it right now** —
@@ -204,6 +204,7 @@ items are deleted and survivors keep their numbers.
 | `buildInputs` / `nativeBuildInputs` in a `mkShell`, or a bare `FOO = "…"` env var | One spelling per job: `packages` and `env = {…}` |
 | A `systems` list that disagrees with the registry | Inv. 4 — the template would claim a platform nothing tests |
 | A template importing `../` or `../../shared` | Inv. 1 — the copy would dangle |
+| A template that ships an application architecture | It ships an environment; the project comes from the ecosystem's own scaffolder — `docs/decisions/environment-not-project.md` |
 | Hand-written `flake.templates` | Inv. 2 — it is derived |
 | Extracting a shared `lib/` for templates to import | Inv. 1 — impossible, not merely discouraged |
 | `nix flake init`/`nix develop` inside a `checks` derivation | No recursive-nix, no network (§6) |
@@ -246,6 +247,10 @@ items are deleted and survivors keep their numbers.
   `docs/decisions/devenv.md`; pinning `android-kotlin`'s Android SDK with
   `androidenv`, or shipping a sample app it could generate —
   `android create` needs a *writable* SDK and refuses a non-empty directory,
-  `docs/decisions/android-cli.md`.
+  `docs/decisions/android-cli.md`; reinstating `ts-node-rest-api`, or any
+  template whose only difference from an existing one is its dependencies and
+  file layout, and a services or full-stack template *in this repo* — the
+  harness has no service lifecycle to prove one with,
+  `docs/decisions/environment-not-project.md`.
 - **If a request genuinely doesn't fit,** say so and give options with their
   costs. Do not silently bend an invariant.

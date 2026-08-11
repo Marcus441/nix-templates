@@ -16,7 +16,7 @@ make the product testable.
 the meta layer. Rejected — it would have to reach the templates as `path:`
 inputs, and a parent lock supersedes a child's committed `flake.lock`, so any
 locked template would be tested at a pin no consumer ever sees. It also freezes
-the unlocked ones — all twelve today — which defeats the scheduled drift run.
+the unlocked ones — all eleven today — which defeats the scheduled drift run.
 
 **Not adopted: the dendritic pattern.** `~/.dotfiles/flake/` uses it, and it
 does not transfer. Its value is merge semantics — many files → one aspect, one

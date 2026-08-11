@@ -20,7 +20,6 @@ With no `#name`, you get `shell` — a minimal dev shell to fill in.
 | `cpp-prod` | Production C++23 — library/exe split, gtest, ASan/UBSan/TSan/coverage profiles, CI |
 | `cpp-prod-modern` | As `cpp-prod`, with the library exposed as a C++23 module |
 | `ts-node` | Node.js + TypeScript — `tsc` build, vitest, `buildNpmPackage` |
-| `ts-node-rest-api` | TypeScript REST API — Express 5 middleware layout, vitest |
 | `dotnet` | .NET SDK, with F# tooling and a NuGet lock generator |
 | `python` | Python with uv — ruff, mypy strict, pytest, `buildPythonApplication` |
 | `android-kotlin` | Android with Kotlin and Jetpack Compose; project scaffolded by Google's `android` CLI |
@@ -53,10 +52,9 @@ Templates ship without a `flake.lock`, so the first `nix develop` resolves
 current `nixos-unstable`. Run `nix flake lock` in your new project to pin it —
 that pin is yours, and nothing here moves it afterwards.
 
-`ts-node` and `ts-node-rest-api` also ship a `package-lock.json`, which
-`nix build` consumes through `buildNpmPackage` — change a dependency and you
-refresh both the lock and the `npmDepsHash` in `flake.nix`. Their READMEs say
-how.
+`ts-node` also ships a `package-lock.json`, which `nix build` consumes through
+`buildNpmPackage` — change a dependency and you refresh both the lock and the
+`npmDepsHash` in `flake.nix`. Its README says how.
 
 ## Contributing
 
