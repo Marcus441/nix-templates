@@ -2,7 +2,7 @@
 
 This repository publishes **project templates** consumed by
 `nix flake init -t github:Marcus441/nix-templates#<name>`. Its product is not a
-configuration — it is eleven standalone flakes that other people copy. That one
+configuration — it is twelve standalone flakes that other people copy. That one
 fact drives every rule below. If a change would violate an invariant, stop and
 say so.
 
@@ -50,7 +50,7 @@ nixpkgs. It exists to *describe and test* the templates. `flake.templates` is
 `mapAttrs` over `config.templates`; adding a registry entry is what publishes a
 template.
 
-**The templates** are eleven unrelated flakes that happen to live in one git
+**The templates** are twelve unrelated flakes that happen to live in one git
 repo. They share no code and cannot. They are the artifact.
 
 flake-parts is used **only** for the registry, and only because `perSystem` is
@@ -107,7 +107,7 @@ one is not an improvement at six files.
 
 | Locked (committed `flake.lock`) | Unlocked |
 | --- | --- |
-| — none today | all eleven |
+| — none today | all twelve |
 
 Unlocked so consumers get current nixpkgs on first use. The bar for locking is
 resolution being slow or fragile, and **nothing meets it right now** —
