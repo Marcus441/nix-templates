@@ -86,12 +86,6 @@
       smoke = ["node --version" "npm --version"];
     };
 
-    ts-node-rest-api = {
-      description = "Dev environment for a TypeScript REST API on Node.js";
-      tier = "build";
-      smoke = ["node --version" "npm --version"];
-    };
-
     typst = {
       description = "Dev environment for Typst documents";
       tier = "shell";
