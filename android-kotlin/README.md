@@ -18,6 +18,13 @@ cd myapp && gradle assembleDebug
 subdirectory rather than beside `flake.nix`. Everything below runs from inside
 that subdirectory unless it says otherwise.
 
+Then one edit to finish the setup:
+
+- **Set `PROJECT_DIR` in `.github/workflows/ci.yml`** to the directory you just
+  passed to `-o`. It ships as `myapp`; if you chose another name, CI builds a
+  path that does not exist. This template cannot know the name you picked —
+  it is the one thing `android create` does not fill in for you.
+
 ## What you get
 
 - `android` — Google's Android CLI: scaffolding, SDK, emulators, deploy,
@@ -220,10 +227,10 @@ echo "--sdk=$HOME/Android/Sdk" > ~/.androidrc
 
 ## CI
 
-`.github/workflows/ci.yml` runs `./gradlew build` and the instrumented tests on
-an emulator. It starts working once you have scaffolded a project — **set
-`PROJECT_DIR` at the top of the workflow** to whatever you passed to
-`android create -o`, since this template cannot know the name you chose.
+`.github/workflows/ci.yml` runs `./gradlew build`, the unit tests and lint in
+one job, and the instrumented tests on an API 36 emulator in another. It works
+as-is once you have scaffolded a project and set `PROJECT_DIR` at the top of the
+workflow, as above.
 
 ## Notes
 
