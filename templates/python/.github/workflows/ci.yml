@@ -1,0 +1,56 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  # The sandboxed build and its check phase — the same thing `nix build` does
+  # locally, on both runner platforms. pytestCheckHook runs the tests here, with
+  # nixpkgs' pytest and no network.
+  nix:
+    name: nix build (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: DeterminateSystems/nix-installer-action@main
+      - uses: nix-community/cache-nix-action@v6
+        with:
+          primary-key: nix-${{ matrix.os }}-${{ hashFiles('flake.lock', 'flake.nix', 'pyproject.toml') }}
+          restore-prefixes-first-match: nix-${{ matrix.os }}-
+          gc-max-store-size: 4G
+      - run: nix flake check --print-build-logs
+      - run: nix build --print-build-logs
+
+  # Everything the sandboxed build deliberately does not do: the lint and type
+  # policy in pyproject.toml, and the tests as they run against .venv.
+  checks:
+    name: ruff, mypy and pytest
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: DeterminateSystems/nix-installer-action@main
+      - uses: nix-community/cache-nix-action@v6
+        with:
+          primary-key: nix-shell-${{ hashFiles('flake.lock', 'flake.nix') }}
+          restore-prefixes-first-match: nix-shell-
+          gc-max-store-size: 4G
+      - uses: actions/cache@v4
+        with:
+          path: ~/.cache/uv
+          key: uv-${{ hashFiles('uv.lock') }}
+          restore-keys: uv-
+      - run: nix develop --command uv sync --locked
+      - run: nix develop --command ruff check .
+      - run: nix develop --command ruff format --check .
+      - run: nix develop --command uv run --no-sync mypy
+      - run: nix develop --command uv run --no-sync pytest

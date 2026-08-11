@@ -62,6 +62,12 @@
       reason = "packages.default needs a project scaffolded by the user, plus a generated nix/deps.json";
     };
 
+    python = {
+      description = "Dev environment for Python with uv, ruff and mypy";
+      tier = "build";
+      smoke = ["python3 --version" "uv --version" "ruff --version"];
+    };
+
     rust = {
       description = "Dev environment for a minimal production-ready Rust project";
       tier = "build";
