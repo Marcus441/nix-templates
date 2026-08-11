@@ -11,13 +11,8 @@
       projectRootFile = "flake.nix";
       programs.alejandra.enable = true;
       programs.shfmt.enable = true;
-      # Scoped to the vendored Gradle wrapper only. Excluding the whole
-      # android-kotlin directory also excluded its flake.nix, which is how that
-      # one template drifted out of alejandra's format without failing a check.
       settings.global.excludes = [
         "*.lock"
-        "**/gradlew*"
-        "**/gradle/**"
       ];
     };
 

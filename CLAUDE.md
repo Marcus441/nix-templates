@@ -105,9 +105,9 @@ one is not an improvement at six files.
 
 Unlocked so consumers get current nixpkgs on first use. The bar for locking is
 resolution being slow or fragile, and **nothing meets it right now** —
-`android-kotlin` was the last locked template and its pin bought little: it is
-`tier = "eval"`, so what the lock froze was an evaluation the weekly cron
-re-runs anyway.
+`android-kotlin` was the last locked template and its pin bought little: it was
+`tier = "eval"` at the time, so what the lock froze was an evaluation the weekly
+cron re-runs anyway.
 
 The policy stays a hybrid rather than "everything unlocked": the `locked` field,
 the `.gitignore` negation mechanism and the `lock-policy` check all remain, so
@@ -152,10 +152,11 @@ a negation line.
   template so generated repos inherit it. GitHub runs only root workflows, so it
   has never run here. Do not consolidate it. `.claude/rules/ci.md`.
 - **A broad `treefmt` exclusion hides a template from the formatter.**
-  `android-kotlin/**` was excluded to keep shfmt off the vendored Gradle
+  `android-kotlin/**` was once excluded to keep shfmt off the vendored Gradle
   wrapper, and silently exempted that template's `flake.nix` from alejandra for
   as long as it existed — `checks.treefmt` stayed green because it was not
-  looking. Scope exclusions to the files that need them.
+  looking. Both the wrapper and the exclusions are gone, and `*.lock` is the
+  only global exclusion left. Scope any new one to the files that need it.
 
 ```bash
 git add -A && nix flake check      # static layer — seconds
