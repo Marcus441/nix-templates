@@ -5,13 +5,8 @@ result-*
 
 # Gradle
 .gradle/
-build/
-app/build/
 **/build/
-gradle-app.setting
 local.properties
-!gradle-wrapper.jar
-!gradle-wrapper.properties
 
 # Kotlin
 .kotlin/
@@ -29,7 +24,6 @@ output-metadata.json
 *.iml
 *.ipr
 *.iws
-.navigation/
 captures/
 .externalNativeBuild/
 .cxx/

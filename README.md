@@ -22,7 +22,7 @@ With no `#name`, you get `shell` — a minimal dev shell to fill in.
 | `ts-node` | Node.js + TypeScript — `tsc` build, vitest, `buildNpmPackage` |
 | `ts-node-rest-api` | TypeScript REST API — Express 5 middleware layout, vitest |
 | `dotnet` | .NET SDK, with F# tooling and a NuGet lock generator |
-| `android-kotlin` | Android with Kotlin and Jetpack Compose, via nixpkgs `androidenv` |
+| `android-kotlin` | Android with Kotlin and Jetpack Compose; project scaffolded by Google's `android` CLI |
 | `typst` | Typst documents, with font plumbing |
 
 `nix flake show github:Marcus441/nix-templates` lists them with descriptions.

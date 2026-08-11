@@ -1,5 +1,5 @@
 {
-  description = "Dev environment for Android with Kotlin and Jetpack Compose (nixpkgs androidenv)";
+  description = "Dev environment for Android with Kotlin, Jetpack Compose and Google's Android CLI";
 
   inputs = {
     nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable";
@@ -12,44 +12,21 @@
         system:
           f (import nixpkgs {
             inherit system;
-            config = {
-              allowUnfree = true;
-              android_sdk.accept_license = true;
-            };
+            config.allowUnfree = true;
           })
       );
   in {
-    devShells = forAllSystems (pkgs: let
-      androidSdk =
-        (pkgs.androidenv.composeAndroidPackages {
-          cmdLineToolsVersion = "11.0";
-          toolsVersion = null;
-          platformToolsVersion = "36.0.0";
-          buildToolsVersions = ["35.0.0" "36.0.0"];
-          platformVersions = ["36"];
-          includeEmulator = true;
-          emulatorVersion = "37.1.7";
-          includeSystemImages = true;
-          systemImageTypes = ["google_apis"];
-          abiVersions = ["x86_64"];
-          includeCmake = false;
-          useGoogleAPIs = true;
-        })
-        .androidsdk;
-    in {
+    devShells = forAllSystems (pkgs: {
       default = pkgs.mkShellNoCC {
         name = "android-kotlin";
         packages = [
-          androidSdk
+          pkgs.android-cli
           pkgs.jdk17
+          pkgs.gradle_9
           pkgs.kotlin
-          pkgs.gradle
+          pkgs.ktlint
         ];
-        env = {
-          ANDROID_HOME = "${androidSdk}/libexec/android-sdk";
-          ANDROID_SDK_ROOT = "${androidSdk}/libexec/android-sdk";
-          JAVA_HOME = "${pkgs.jdk17}";
-        };
+        env.JAVA_HOME = pkgs.jdk17.home;
       };
     });
 
