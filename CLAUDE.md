@@ -158,11 +158,12 @@ a negation line.
   template so generated repos inherit it. GitHub runs only root workflows, so it
   has never run here. Do not consolidate it. `.claude/rules/ci.md`.
 - **A broad `treefmt` exclusion hides a template from the formatter.**
-  `android-kotlin/**` was once excluded to keep shfmt off the vendored Gradle
-  wrapper, and silently exempted that template's `flake.nix` from alejandra for
-  as long as it existed — `checks.treefmt` stayed green because it was not
-  looking. Both the wrapper and the exclusions are gone, and `*.lock` is the
-  only global exclusion left. Scope any new one to the files that need it.
+  `android-kotlin/**` was once excluded alongside `**/gradlew*` and
+  `**/gradle/**`, which already kept shfmt off the vendored Gradle wrapper — so
+  it bought nothing, and silently exempted that template's `flake.nix` from
+  alejandra for as long as it existed. `checks.treefmt` stayed green because it
+  was not looking. Both the wrapper and the exclusions are gone, and `*.lock` is
+  the only global exclusion left. Scope any new one to the files that need it.
 
 ```bash
 git add -A && nix flake check      # static layer — seconds
