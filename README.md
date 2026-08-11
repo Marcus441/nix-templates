@@ -19,8 +19,8 @@ With no `#name`, you get `shell` — a minimal dev shell to fill in.
 | `cpp` | C++23 — CMake + Ninja presets, ASan/UBSan, `ctest` with no test framework |
 | `cpp-prod` | Production C++23 — library/exe split, gtest, ASan/UBSan/TSan/coverage profiles, CI |
 | `cpp-prod-modern` | As `cpp-prod`, with the library exposed as a C++23 module |
-| `node` | Node.js + TypeScript, built with `buildNpmPackage` |
-| `node-rest-api` | Node.js REST API — Express 5 middleware layout, vitest |
+| `ts-node` | Node.js + TypeScript — `tsc` build, vitest, `buildNpmPackage` |
+| `ts-node-rest-api` | TypeScript REST API — Express 5 middleware layout, vitest |
 | `dotnet` | .NET SDK and runtime, with F# tooling helpers |
 | `android-kotlin` | Android with Kotlin and Jetpack Compose, via nixpkgs `androidenv` |
 | `typst` | Typst documents, with font plumbing |
@@ -52,9 +52,10 @@ Templates ship without a `flake.lock`, so the first `nix develop` resolves
 current `nixos-unstable`. Run `nix flake lock` in your new project to pin it —
 that pin is yours, and nothing here moves it afterwards.
 
-`node` and `node-rest-api` also ship a `package-lock.json`, which `nix build`
-consumes through `buildNpmPackage` — change a dependency and you refresh both
-the lock and the `npmDepsHash` in `flake.nix`. Their READMEs say how.
+`ts-node` and `ts-node-rest-api` also ship a `package-lock.json`, which
+`nix build` consumes through `buildNpmPackage` — change a dependency and you
+refresh both the lock and the `npmDepsHash` in `flake.nix`. Their READMEs say
+how.
 
 ## Contributing
 

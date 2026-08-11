@@ -1,10 +1,10 @@
-# node-rest-api
+# ts-node-rest-api
 
 Dev environment for a Node.js REST API — Express 5, TypeScript, and a middleware
 layout that is already wired up.
 
 ```bash
-nix flake init -t github:Marcus441/nix-templates#node-rest-api
+nix flake init -t github:Marcus441/nix-templates#ts-node-rest-api
 git init && git add -A     # flakes see only tracked files
 nix develop                # or: direnv allow
 npm install

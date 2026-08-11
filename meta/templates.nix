@@ -40,18 +40,6 @@
       reason = "packages.default needs a project scaffolded by the user, plus a generated nix/deps.nix";
     };
 
-    node = {
-      description = "Dev environment for Node.js";
-      tier = "build";
-      smoke = ["node --version" "npm --version"];
-    };
-
-    node-rest-api = {
-      description = "Dev environment for a Node.js REST API";
-      tier = "build";
-      smoke = ["node --version" "npm --version"];
-    };
-
     rust = {
       description = "Dev environment for a minimal production-ready Rust project";
       tier = "build";
@@ -62,6 +50,18 @@
       description = "Minimal dev shell to fill in";
       tier = "shell";
       reason = "intentionally an empty stub; there is nothing to build or smoke-test";
+    };
+
+    ts-node = {
+      description = "Dev environment for Node.js with TypeScript";
+      tier = "build";
+      smoke = ["node --version" "npm --version"];
+    };
+
+    ts-node-rest-api = {
+      description = "Dev environment for a TypeScript REST API on Node.js";
+      tier = "build";
+      smoke = ["node --version" "npm --version"];
     };
 
     typst = {

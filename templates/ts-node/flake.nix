@@ -1,5 +1,5 @@
 {
-  description = "Dev environment for a Node.js REST API";
+  description = "Dev environment for Node.js with TypeScript";
 
   inputs = {
     nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable";
@@ -19,14 +19,14 @@
         src = ./.;
 
         nodejs = pkgs.nodejs_24;
-        npmDepsHash = "sha256-8Gn3KfBLwzYj/dG3trcq/KuQKd+9NtE8MGn6nA0EJFM=";
+        npmDepsHash = "sha256-pOSESMHS1LX9xedM38z5zgRK64ERGaJqgg/eKfap5p0=";
         npmBuildScript = "build";
       };
     });
 
     devShells = forAllSystems (pkgs: {
       default = pkgs.mkShellNoCC {
-        name = "node-rest-api";
+        name = "ts-node";
         packages = [pkgs.nodejs_24];
       };
     });
