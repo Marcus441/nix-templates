@@ -182,14 +182,6 @@ items are deleted and survivors keep their numbers.
    Inv. 1 forbids extracting any of it. The ladder is worth the cost, but a fix
    to one rung is worth applying to the others, and `cpp-prod-modern`'s README
    points at `cpp-prod` rather than restating its reasoning.
-8. **`cpp`, `cpp-prod` and `cpp-prod-modern` still spell it `pkgs.system`.**
-   nixpkgs deprecated that attribute, so every `nix develop` in a project
-   generated from those three prints `'system' has been renamed to/replaced by
-   'stdenv.hostPlatform.system'` — a warning about this repo's idiom, surfacing
-   in a stranger's project. `rust` was migrated when it was last touched; the
-   other three were out of that task's scope. It is a one-token change per file
-   (`.claude/rules/template-flake-conventions.md` has the spelling), so migrate
-   them the next time any of the three is touched.
 9. **Only `x86_64-linux` is provable locally.** CI covers all three systems a
    template can claim, but `./scripts/test-template.sh` runs on the machine you
    are sitting at — so a template authored on Linux cannot be verified for

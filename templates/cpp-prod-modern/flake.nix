@@ -75,13 +75,13 @@
     packages = forAllSystems (
       pkgs:
         builtins.mapAttrs (_: mkPackage pkgs) (toolchains pkgs)
-        // {default = self.packages.${pkgs.system}.clang;}
+        // {default = self.packages.${pkgs.stdenv.hostPlatform.system}.clang;}
     );
 
     devShells = forAllSystems (
       pkgs:
         builtins.mapAttrs (mkDevShell pkgs) (toolchains pkgs)
-        // {default = self.devShells.${pkgs.system}.clang;}
+        // {default = self.devShells.${pkgs.stdenv.hostPlatform.system}.clang;}
     );
 
     formatter = forAllSystems (pkgs: pkgs.alejandra);

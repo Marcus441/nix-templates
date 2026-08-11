@@ -45,7 +45,7 @@
     devShells = forAllSystems (pkgs: {
       default = (pkgs.mkShell.override {stdenv = pkgs.llvmPackages.stdenv;}) {
         name = "cpp";
-        inputsFrom = [self.packages.${pkgs.system}.default];
+        inputsFrom = [self.packages.${pkgs.stdenv.hostPlatform.system}.default];
         packages = [
           pkgs.llvmPackages.clang-tools
           pkgs.llvmPackages.lldb
