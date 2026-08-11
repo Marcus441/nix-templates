@@ -10,3 +10,15 @@ edition = "2024"
 lto = true
 codegen-units = 1
 strip = true
+
+# Lint policy lives with the project, so `cargo clippy` and your editor agree
+# with CI without anyone passing flags.
+[lints.rust]
+unsafe_code = "forbid"
+missing_debug_implementations = "warn"
+unreachable_pub = "warn"
+
+[lints.clippy]
+pedantic = { level = "warn", priority = -1 }
+unwrap_used = "warn"
+expect_used = "warn"

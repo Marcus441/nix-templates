@@ -16,31 +16,34 @@
         system: f (import nixpkgs {inherit system;})
       );
 
-    project = "myproject";
+    crate = (builtins.fromTOML (builtins.readFile ./Cargo.toml)).package;
   in {
     packages = forAllSystems (pkgs: {
       default = pkgs.rustPlatform.buildRustPackage {
-        pname = project;
-        version = "0.1.0";
+        pname = crate.name;
+        inherit (crate) version;
         src = ./.;
         cargoLock.lockFile = ./Cargo.lock;
 
         nativeBuildInputs = [pkgs.pkg-config];
-        buildInputs = [];
 
-        meta.mainProgram = project;
+        meta.mainProgram = crate.name;
       };
     });
 
     devShells = forAllSystems (pkgs: {
       default = pkgs.mkShell {
         name = "rust";
-        inputsFrom = [self.packages.${pkgs.system}.default];
+        inputsFrom = [self.packages.${pkgs.stdenv.hostPlatform.system}.default];
         packages = [
           pkgs.clippy
           pkgs.rustfmt
           pkgs.rust-analyzer
-          pkgs.gdb
+          (
+            if pkgs.stdenv.hostPlatform.isDarwin
+            then pkgs.lldb
+            else pkgs.gdb
+          )
         ];
         env.RUST_BACKTRACE = "1";
       };
