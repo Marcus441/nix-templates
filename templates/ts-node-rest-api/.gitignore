@@ -1,0 +1,19 @@
+# Nix
+result
+result-*
+.direnv/
+
+# Node
+node_modules/
+dist/
+coverage/
+
+# Editors / OS
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+
+.env
+*.log

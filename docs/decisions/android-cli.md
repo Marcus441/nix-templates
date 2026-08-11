@@ -15,7 +15,7 @@ plugin line was wrong rather than merely old. None of it was caught, because at
 catalog ages against nothing at all.
 
 So the split is: this repo owns the *environment*, Google owns the *project*.
-`dotnet/` already had that shape, deferring to `dotnet new`; `android-kotlin` is
+`templates/dotnet/` already had that shape, deferring to `dotnet new`; `android-kotlin` is
 the second instance, not a new idea.
 
 **The SDK is not pinned, and this is forced rather than chosen.** `android

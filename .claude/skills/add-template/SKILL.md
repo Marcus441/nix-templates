@@ -20,10 +20,10 @@ it. Five files are mandatory (Inv. 6, checked):
 | File | Content |
 | --- | --- |
 | `flake.nix` | Standalone. See `.claude/rules/template-flake-conventions.md` for the canonical preamble — copy it exactly, including the nixpkgs spelling, the `systems` list and the `...` ellipsis. |
-| `.editorconfig` | Copy the `[*]` block from `cpp/.editorconfig` verbatim, then append only the block the language needs (4 spaces for Python/Kotlin/C#, a line length otherwise). No language block at all if 2 spaces is right. |
+| `.editorconfig` | Copy the `[*]` block from `templates/cpp/.editorconfig` verbatim, then append only the block the language needs (4 spaces for Python/Kotlin/C#, a line length otherwise). No language block at all if 2 spaces is right. |
 | `.envrc` | `use flake`, plus a `PATH_add` only where it earns one — `node_modules/.bin`, `build` |
 | `.gitignore` | Must **open** with the four-line Nix block (`# Nix`, `result`, `result-*`, `.direnv/`), then the language's build output |
-| `README.md` | Opens with `# <name>`, and must have a `## Building` section. `rust/README.md` is the model. |
+| `README.md` | Opens with `# <name>`, and must have a `## Building` section. `templates/rust/README.md` is the model. |
 
 The flake **cannot** reference anything outside this directory (Inv. 1). If it
 looks like it wants to share code with an existing template, it can't — copy the
@@ -70,7 +70,7 @@ only locked template means being the only one the weekly drift run cannot speak
 for. If it is warranted, also add the negation line to `.gitignore`:
 
 ```gitignore
-!/<name>/flake.lock
+!/templates/<name>/flake.lock
 ```
 
 and commit the lock. CLAUDE.md §5.

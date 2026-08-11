@@ -68,8 +68,8 @@
 
       path = mkOption {
         type = types.path;
-        default = ../. + "/${name}";
-        defaultText = "../<name>";
+        default = ../templates + "/${name}";
+        defaultText = "../templates/<name>";
         description = "Derived from the attribute name; the directory name is the template name.";
       };
     };

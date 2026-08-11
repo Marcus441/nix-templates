@@ -1,5 +1,5 @@
 ---
-paths: "*/flake.nix"
+paths: "templates/*/flake.nix"
 ---
 
 # Writing a template's flake.nix
@@ -40,9 +40,13 @@ and, more importantly, teaches the reader a second idiom for no reason.
 ```
 
 Take `self` as the first argument **only** when it is used —
-`inputsFrom = [self.packages.${pkgs.system}.default]` is the usual reason. Note
-`pkgs.system`: `forAllSystems` passes `pkgs`, not `system`, so that the helper
-is one argument in all eleven templates. Alejandra collapses `{nixpkgs, ...}`
+`inputsFrom = [self.packages.${pkgs.stdenv.hostPlatform.system}.default]` is the
+usual reason. `forAllSystems` passes `pkgs`, not `system`, so that the helper is
+one argument in all eleven templates; recover the system from `pkgs` rather than
+threading a second argument through. Spell it
+`pkgs.stdenv.hostPlatform.system` — **not `pkgs.system`**, which nixpkgs now
+deprecates and warns about on every `nix develop`, in the consumer's project
+where the warning means nothing to them. Alejandra collapses `{nixpkgs, ...}`
 onto one line and expands `{self, nixpkgs, ...}`; let it, and never hand-format
 against it — `checks.treefmt` is the arbiter.
 
@@ -91,18 +95,29 @@ than imported, and why it cannot be shared.
   `unfree` flag is only for templates that do *not* do this, and no template
   currently needs it.
 - **No eager reads of files the template does not ship.**
-  `builtins.readFile ./nix/deps.nix` at eval time makes the template
+  `builtins.readFile ./nix/deps.json` at eval time makes the template
   un-evaluatable as shipped. If an output depends on a file the *user*
-  generates, guard it — `dotnet` is the worked example:
+  generates, guard **that output** on `builtins.pathExists` — `dotnet` is the
+  worked example:
 
   ```nix
-  packages = forAllSystems (pkgs:
-    nixpkgs.lib.optionalAttrs (depsFile != null) {
-      default = ...;
+  packages = forAllSystems (pkgs: let
+    module = pkgs.buildDotnetModule {nugetDeps = ./nix/deps.json; ...};
+  in
+    {inherit (module.passthru) fetch-deps;}
+    // nixpkgs.lib.optionalAttrs (builtins.pathExists ./nix/deps.json) {
+      default = module;
     });
   ```
 
-- **A build output must build in the sandbox** — no network. `cpp/flake.nix` is
+  Guard the narrowest thing that needs guarding. Hiding the *whole* `packages`
+  output is the trap: the generator that writes `nix/deps.json` is itself a
+  `passthru` attribute of that package, so gating the package on the file made
+  the documented bootstrap circular — you needed the file to reach the command
+  that creates it. `fetch-deps` never reads the file, so it does not need the
+  guard, and it must not have one.
+
+- **A build output must build in the sandbox** — no network. `templates/cpp/flake.nix` is
   the example to copy: gtest via `checkInputs` plus
   `-DFETCHCONTENT_FULLY_DISCONNECTED=ON`, rather than CMake `FetchContent`
   reaching for the network at build time.

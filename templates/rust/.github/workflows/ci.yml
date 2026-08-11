@@ -1,0 +1,47 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  # The sandboxed build and its check phase — the same thing `nix build` does
+  # locally, on both runner platforms. buildRustPackage runs `cargo test` here.
+  nix:
+    name: nix build (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: DeterminateSystems/nix-installer-action@main
+      - uses: nix-community/cache-nix-action@v6
+        with:
+          primary-key: nix-${{ matrix.os }}-${{ hashFiles('flake.lock', 'flake.nix', 'Cargo.lock') }}
+          restore-prefixes-first-match: nix-${{ matrix.os }}-
+          gc-max-store-size: 4G
+      - run: nix flake check --print-build-logs
+      - run: nix build --print-build-logs
+
+  # Everything the sandboxed build deliberately does not do: the lint policy in
+  # Cargo.toml's [lints] tables, as errors, and the formatter.
+  checks:
+    name: clippy and rustfmt
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: DeterminateSystems/nix-installer-action@main
+      - uses: nix-community/cache-nix-action@v6
+        with:
+          primary-key: nix-shell-${{ hashFiles('flake.lock', 'flake.nix', 'Cargo.lock') }}
+          restore-prefixes-first-match: nix-shell-
+          gc-max-store-size: 4G
+      - run: nix develop --command cargo clippy --all-targets -- -D warnings
+      - run: nix develop --command cargo fmt --check

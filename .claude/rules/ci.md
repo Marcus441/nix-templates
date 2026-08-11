@@ -6,7 +6,7 @@ paths: ".github/workflows/*"
 
 Three things nothing else in the repo says.
 
-## `android-kotlin/.github/workflows/ci.yml` is not this repo's CI
+## `templates/android-kotlin/.github/workflows/ci.yml` is not this repo's CI
 
 It is **payload**. It ships inside the template so that projects generated from
 it inherit a working Android pipeline. GitHub only runs workflows found at the
