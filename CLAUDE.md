@@ -226,6 +226,9 @@ items are deleted and survivors keep their numbers.
   reintroducing `flake-utils` to shorten the `forAllSystems` helper — the
   duplication is the design, `docs/decisions/no-flake-utils.md`; devenv in a
   template or in the registry, including a hybrid `.envrc` —
-  `docs/decisions/devenv.md`.
+  `docs/decisions/devenv.md`; pinning `android-kotlin`'s Android SDK with
+  `androidenv`, or shipping a sample app it could generate —
+  `android create` needs a *writable* SDK and refuses a non-empty directory,
+  `docs/decisions/android-cli.md`.
 - **If a request genuinely doesn't fit,** say so and give options with their
   costs. Do not silently bend an invariant.
