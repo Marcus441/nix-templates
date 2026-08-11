@@ -21,10 +21,10 @@ hook-blocked because it moves every pin at once, that one included.
 Resolution being slow or fragile — not "it broke once". An unlocked template
 that breaks on drift is usually telling you the template needs fixing.
 
-`android-kotlin` was the last locked template and no longer meets the bar: it is
-`tier = "eval"`, so the lock froze an evaluation that the weekly cron re-runs
-anyway, at the cost of handing every consumer a nixpkgs that ages from the day
-it was committed.
+`android-kotlin` was the last locked template and no longer meets the bar: it was
+`tier = "eval"` when locked, so the lock froze an evaluation that the weekly cron
+re-runs anyway, at the cost of handing every consumer a nixpkgs that ages from
+the day it was committed.
 
 Locking is also a coverage decision, not only a speed one. A locked template is
 one the drift run cannot speak for: it passes against its pin no matter what
