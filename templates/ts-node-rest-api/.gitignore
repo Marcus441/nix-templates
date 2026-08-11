@@ -6,6 +6,7 @@ result-*
 # Node
 node_modules/
 dist/
+coverage/
 
 # Editors / OS
 .vscode/

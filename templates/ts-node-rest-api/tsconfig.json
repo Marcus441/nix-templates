@@ -1,37 +1,32 @@
 {
   "compilerOptions": {
     /* Language & environment */
-    "target": "ES2020",
-    "lib": ["ES2020"],
+    "target": "ES2023",
+    "lib": ["ES2023"],
     "module": "NodeNext",
     "moduleResolution": "nodenext",
     "types": ["node"],
 
-    /* Class fields & modern semantics */
-    "useDefineForClassFields": true,
-
-    /* Emit behavior */
-    "outDir": "dist",
-    "rootDir": "src",
-    "noEmit": false,
+    /* Emit. This config only typechecks — tsconfig.build.json is what emits. */
+    "noEmit": true,
     "declaration": true,
     "sourceMap": true,
 
     /* Strictness & safety */
     "strict": true,
-    "noUnusedLocals": false,
-    "noUnusedParameters": false,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
     "noFallthroughCasesInSwitch": true,
+    "noImplicitOverride": true,
 
     /* Module import/export style */
+    "verbatimModuleSyntax": true,
     "esModuleInterop": true,
-    "allowSyntheticDefaultImports": true,
     "forceConsistentCasingInFileNames": true,
 
     /* Performance */
     "skipLibCheck": true
   },
-  "exclude": ["node_modules", "dist"],
-  "include": ["src/**/*.ts"]
+  "include": ["src", "test", "vitest.config.ts"],
+  "exclude": ["node_modules", "dist"]
 }
-

@@ -1,4 +1,4 @@
-import { Request, Response, NextFunction } from "express";
+import type { Request, Response, NextFunction } from "express";
 import { CORS_ALLOWED_ORIGINS } from "../config/config.js";
 
 export function corsHandler(req: Request, res: Response, next: NextFunction) {

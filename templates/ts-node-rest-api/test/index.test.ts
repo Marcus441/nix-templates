@@ -6,8 +6,8 @@ beforeAll(() => {
   SetupApplication();
 });
 
-afterAll((done) => {
-  Shutdown(done);
+afterAll(() => {
+  Shutdown();
 });
 
 describe("Environment", () => {

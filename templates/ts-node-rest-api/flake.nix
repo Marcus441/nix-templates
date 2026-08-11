@@ -11,16 +11,24 @@
       nixpkgs.lib.genAttrs systems (
         system: f (import nixpkgs {inherit system;})
       );
+
+    manifest = builtins.fromJSON (builtins.readFile ./package.json);
   in {
     packages = forAllSystems (pkgs: {
       default = pkgs.buildNpmPackage {
-        pname = "my-project";
-        version = "1.0.0";
+        pname = manifest.name;
+        inherit (manifest) version;
         src = ./.;
 
         nodejs = pkgs.nodejs_24;
-        npmDepsHash = "sha256-8Gn3KfBLwzYj/dG3trcq/KuQKd+9NtE8MGn6nA0EJFM=";
-        npmBuildScript = "build";
+        npmDepsHash = "sha256-6Kt+3RWBZl9quxJZyMPvm4HPe/6DvmY3kOJQj72V5Rc=";
+
+        doCheck = true;
+        checkPhase = ''
+          runHook preCheck
+          npm run test
+          runHook postCheck
+        '';
       };
     });
 

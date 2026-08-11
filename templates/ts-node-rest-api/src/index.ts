@@ -1,5 +1,6 @@
 import express from "express";
-import http, { Server } from "http";
+import http from "node:http";
+import type { Server } from "node:http";
 import { loggingHandler } from "./middleware/loggingHandler.js";
 import { corsHandler } from "./middleware/corsHandler.js";
 import { routeNotFound } from "./middleware/routeNotFound.js";
@@ -51,7 +52,7 @@ export const StartServer = () => {
   });
 };
 
-export const Shutdown = (callback: any) =>
+export const Shutdown = (callback?: (err?: Error) => void) =>
   httpServer && httpServer.close(callback);
 
 const isMainModule = (url: string) => {
