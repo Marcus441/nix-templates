@@ -9,7 +9,7 @@
   perSystem = {pkgs, ...}: let
     templates = config.templates;
     names = lib.attrNames templates;
-    root = ../.;
+    root = ../templates;
 
     canonicalUrl = ''nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable"'';
 
@@ -34,17 +34,12 @@
     # `packages` cannot trip it.
     bannedFrameworks = ["flake-utils" "flake-parts" "import-tree" "devenv" "snowfall"];
 
-    # Directories that are repository machinery rather than templates.
-    notTemplates = ["meta" "scripts" "docs"];
-
+    # Everything under templates/ is a template. Nothing else lives there, which
+    # is why this needs no denylist of repository machinery.
     dirs =
       lib.attrNames
       (lib.filterAttrs
-        (n: type:
-          type
-          == "directory"
-          && !(lib.hasPrefix "." n)
-          && !(builtins.elem n notTemplates))
+        (n: type: type == "directory" && !(lib.hasPrefix "." n))
         (builtins.readDir root));
 
     # The `description` of a template's own flake.nix, as text. Null when the

@@ -1,5 +1,5 @@
 ---
-paths: "*/flake.nix"
+paths: "templates/*/flake.nix"
 ---
 
 # Writing a template's flake.nix
@@ -102,7 +102,7 @@ than imported, and why it cannot be shared.
     });
   ```
 
-- **A build output must build in the sandbox** — no network. `cpp/flake.nix` is
+- **A build output must build in the sandbox** — no network. `templates/cpp/flake.nix` is
   the example to copy: gtest via `checkInputs` plus
   `-DFETCHCONTENT_FULLY_DISCONNECTED=ON`, rather than CMake `FetchContent`
   reaching for the network at build time.

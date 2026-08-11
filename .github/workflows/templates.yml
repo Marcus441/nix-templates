@@ -1,6 +1,6 @@
 # CI for THIS repository.
 #
-# android-kotlin/.github/workflows/ci.yml is not this — it is payload, shipped
+# templates/android-kotlin/.github/workflows/ci.yml is not this — it is payload, shipped
 # inside the template so generated projects inherit it. GitHub only runs
 # workflows from the repository root, so it has never run here. Do not
 # consolidate them.
@@ -109,7 +109,7 @@ jobs:
       - uses: nix-community/cache-nix-action@v6
         if: matrix.system == 'x86_64-linux'
         with:
-          primary-key: nix-${{ matrix.system }}-${{ matrix.name }}-${{ hashFiles(format('{0}/flake.nix', matrix.name), format('{0}/flake.lock', matrix.name)) }}
+          primary-key: nix-${{ matrix.system }}-${{ matrix.name }}-${{ hashFiles(format('templates/{0}/flake.nix', matrix.name), format('templates/{0}/flake.lock', matrix.name)) }}
           restore-prefixes-first-match: nix-${{ matrix.system }}-${{ matrix.name }}-
           gc-max-store-size: 4G
           purge: true

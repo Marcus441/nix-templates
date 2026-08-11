@@ -4,7 +4,7 @@
 that case does not hold. The canonical preamble — description, one input,
 `systems`, `forAllSystems` — is about thirteen lines, and it is *constant*: it
 does not grow with the complexity of the environment it opens.
-`node-rest-api/flake.nix` is thirty-six lines complete, package and dev shell
+`templates/node-rest-api/flake.nix` is thirty-six lines complete, package and dev shell
 included. What devenv actually buys is `services.<db>.enable` and the
 process-compose supervision behind it. That is a services argument, not a
 brevity argument, and no template in this repo needs services today.

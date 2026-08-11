@@ -90,9 +90,15 @@ meta/
   harness.nix             # packages.registry-json, apps.test
   dev.nix                 # devShell + formatter
 scripts/test-template.sh  # the real test harness
-<template>/               # one directory per template, standalone, self-contained
+templates/<name>/         # one directory per template, standalone, self-contained
 docs/decisions/           # why a call was made
 ```
+
+**Everything under `templates/` is a template, and nothing else lives there.**
+That is what lets `registry-bijection` read the directory listing straight,
+with no denylist of repository machinery to keep in step — before the split it
+carried one, and any new top-level directory failed the check until someone
+remembered to extend it.
 
 `meta/` uses a plain `imports` list. There is no `import-tree` here and adding
 one is not an improvement at six files.
@@ -148,11 +154,11 @@ a negation line.
   github:Marcus441/nix-templates#shell` now pulls flake-parts and nixpkgs before
   printing anything. Accepted knowingly — `docs/decisions/flake-parts-at-root.md`
   — so do not "optimise" it away by moving the registry into a second flake.
-- **`android-kotlin/.github/workflows/ci.yml` is payload,** shipped inside the
+- **`templates/android-kotlin/.github/workflows/ci.yml` is payload,** shipped inside the
   template so generated repos inherit it. GitHub runs only root workflows, so it
   has never run here. Do not consolidate it. `.claude/rules/ci.md`.
 - **A broad `treefmt` exclusion hides a template from the formatter.**
-  `android-kotlin/**` was excluded to keep shfmt off the vendored Gradle
+  `templates/android-kotlin/**` was excluded to keep shfmt off the vendored Gradle
   wrapper, and silently exempted that template's `flake.nix` from alejandra for
   as long as it existed — `checks.treefmt` stayed green because it was not
   looking. Scope exclusions to the files that need them.
@@ -220,7 +226,7 @@ items are deleted and survivors keep their numbers.
   blueprint) without being asked — into the registry or into a template.
 - **Do not re-propose:** the dendritic pattern for this repo (§2); a shared
   library for templates (Inv. 1 makes it impossible); moving
-  `android-kotlin/.github/workflows/ci.yml` to the repo root — it lives inside
+  `templates/android-kotlin/.github/workflows/ci.yml` to the repo root — it lives inside
   the template *so generated repos inherit it*, and has never run here;
   reintroducing `flake-utils` to shorten the `forAllSystems` helper — the
   duplication is the design, `docs/decisions/no-flake-utils.md`; devenv in a
