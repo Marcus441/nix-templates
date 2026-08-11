@@ -7,7 +7,7 @@ description: >-
 
 # Lock policy
 
-**No template ships a committed `flake.lock` today** (CLAUDE.md §5). All eleven
+**No template ships a committed `flake.lock` today** (CLAUDE.md §5). All twelve
 resolve current nixpkgs on first use, so there is no pin to bump — the sections
 below describe what to do if one ever gets locked again, and the bar it has to
 clear first.

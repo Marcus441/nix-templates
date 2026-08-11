@@ -22,6 +22,7 @@ With no `#name`, you get `shell` — a minimal dev shell to fill in.
 | `ts-node` | Node.js + TypeScript — `tsc` build, vitest, `buildNpmPackage` |
 | `ts-node-rest-api` | TypeScript REST API — Express 5 middleware layout, vitest |
 | `dotnet` | .NET SDK, with F# tooling and a NuGet lock generator |
+| `python` | Python with uv — ruff, mypy strict, pytest, `buildPythonApplication` |
 | `android-kotlin` | Android with Kotlin and Jetpack Compose; project scaffolded by Google's `android` CLI |
 | `typst` | Typst documents, with font plumbing |
 
