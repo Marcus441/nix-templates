@@ -21,7 +21,7 @@ With no `#name`, you get `shell` — a minimal dev shell to fill in.
 | `cpp-prod-modern` | As `cpp-prod`, with the library exposed as a C++23 module |
 | `ts-node` | Node.js + TypeScript — `tsc` build, vitest, `buildNpmPackage` |
 | `ts-node-rest-api` | TypeScript REST API — Express 5 middleware layout, vitest |
-| `dotnet` | .NET SDK and runtime, with F# tooling helpers |
+| `dotnet` | .NET SDK, with F# tooling and a NuGet lock generator |
 | `android-kotlin` | Android with Kotlin and Jetpack Compose, via nixpkgs `androidenv` |
 | `typst` | Typst documents, with font plumbing |
 

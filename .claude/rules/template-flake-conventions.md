@@ -91,16 +91,27 @@ than imported, and why it cannot be shared.
   `unfree` flag is only for templates that do *not* do this, and no template
   currently needs it.
 - **No eager reads of files the template does not ship.**
-  `builtins.readFile ./nix/deps.nix` at eval time makes the template
+  `builtins.readFile ./nix/deps.json` at eval time makes the template
   un-evaluatable as shipped. If an output depends on a file the *user*
-  generates, guard it — `dotnet` is the worked example:
+  generates, guard **that output** on `builtins.pathExists` — `dotnet` is the
+  worked example:
 
   ```nix
-  packages = forAllSystems (pkgs:
-    nixpkgs.lib.optionalAttrs (depsFile != null) {
-      default = ...;
+  packages = forAllSystems (pkgs: let
+    module = pkgs.buildDotnetModule {nugetDeps = ./nix/deps.json; ...};
+  in
+    {inherit (module.passthru) fetch-deps;}
+    // nixpkgs.lib.optionalAttrs (builtins.pathExists ./nix/deps.json) {
+      default = module;
     });
   ```
+
+  Guard the narrowest thing that needs guarding. Hiding the *whole* `packages`
+  output is the trap: the generator that writes `nix/deps.json` is itself a
+  `passthru` attribute of that package, so gating the package on the file made
+  the documented bootstrap circular — you needed the file to reach the command
+  that creates it. `fetch-deps` never reads the file, so it does not need the
+  guard, and it must not have one.
 
 - **A build output must build in the sandbox** — no network. `templates/cpp/flake.nix` is
   the example to copy: gtest via `checkInputs` plus

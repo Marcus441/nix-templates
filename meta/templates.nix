@@ -34,10 +34,10 @@
     };
 
     dotnet = {
-      description = "Dev environment with dotnet sdk and runtime";
+      description = "Dev environment for .NET, with F# tooling";
       tier = "shell";
       smoke = ["dotnet --version"];
-      reason = "packages.default needs a project scaffolded by the user, plus a generated nix/deps.nix";
+      reason = "packages.default needs a project scaffolded by the user, plus a generated nix/deps.json";
     };
 
     rust = {

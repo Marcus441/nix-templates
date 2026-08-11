@@ -1,5 +1,5 @@
 {
-  description = "Dev environment with dotnet sdk and runtime";
+  description = "Dev environment for .NET, with F# tooling";
 
   inputs = {
     nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable";
@@ -21,28 +21,24 @@
     testProjectFile = "./${projectName}.Test/${projectName}.Test.fsproj";
     version = "0.0.1";
     dotnetVersion = "dotnet_10";
-
-    depsFile =
-      if builtins.pathExists ./nix/deps.json
-      then ./nix/deps.json
-      else if builtins.pathExists ./nix/deps.nix
-      then ./nix/deps.nix
-      else null;
+    depsFile = ./nix/deps.json;
   in {
-    packages = forAllSystems (
-      pkgs:
-        nixpkgs.lib.optionalAttrs (depsFile != null) {
-          default = pkgs.buildDotnetModule {
-            pname = projectName;
-            inherit version projectFile testProjectFile;
-            dotnet-sdk = pkgs.dotnetCorePackages.${dotnetVersion}.sdk;
-            dotnet-runtime = pkgs.dotnetCorePackages.${dotnetVersion}.runtime;
-            src = ./.;
-            nugetDeps = depsFile;
-            doCheck = true;
-          };
-        }
-    );
+    packages = forAllSystems (pkgs: let
+      module = pkgs.buildDotnetModule {
+        pname = projectName;
+        inherit version projectFile testProjectFile;
+        dotnet-sdk = pkgs.dotnetCorePackages.${dotnetVersion}.sdk;
+        dotnet-runtime = pkgs.dotnetCorePackages.${dotnetVersion}.runtime;
+        src = ./.;
+        nugetDeps = depsFile;
+        doCheck = true;
+        meta.mainProgram = projectName;
+      };
+    in
+      {inherit (module.passthru) fetch-deps;}
+      // nixpkgs.lib.optionalAttrs (builtins.pathExists depsFile) {
+        default = module;
+      });
 
     devShells = forAllSystems (pkgs: let
       dotnet-sdk = pkgs.dotnetCorePackages.${dotnetVersion}.sdk;
@@ -51,8 +47,6 @@
         name = "dotnet";
         packages = [
           dotnet-sdk
-          pkgs.git
-          pkgs.alejandra
           pkgs.fantomas
         ];
         env = {
