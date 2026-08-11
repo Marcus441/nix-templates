@@ -212,6 +212,16 @@ items are deleted and survivors keep their numbers.
 
 ## 9. Working style
 
+- **Branch first. Never commit to `main`.** `nix flake init -t
+  github:Marcus441/nix-templates#<name>` resolves the *default branch*, so a
+  commit on `main` is published to every consumer the moment it is pushed —
+  there is no release step between the two, and no way to stage a change for
+  review afterwards. Cut a branch before the first edit and open a PR, so CI
+  runs the matrix on all three systems before anything reaches a consumer. This
+  matters most for exactly the changes that feel safe enough to skip it: a
+  rename breaks every init command in the wild, and an unlocked template's
+  breakage shows up in someone else's project, not here. Branch names follow
+  the commit scope: `feat/…`, `fix/…`, `refactor/…`, `docs/…`.
 - **Small, single-concern commits.** Conventional-commit style with a scope,
   matching existing history: `feat(rust):`, `fix(ci):`, `docs(android):`.
 - **Rationale in the commit message,** not in comments. A decision that recurs
