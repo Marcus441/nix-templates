@@ -4,7 +4,7 @@ Minimal dev shell to fill in. This is the default template — `nix flake init`
 with no `-t` copies it.
 
 ```bash
-nix flake init -t github:Marcus441/nix-templates#shell
+nix flake init -t 'github:Marcus441/nix-templates#shell'
 git init && git add -A     # flakes see only tracked files
 nix develop                # or: direnv allow
 ```

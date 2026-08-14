@@ -4,7 +4,7 @@ Dev environment for production C++ with modules — `cpp-prod` with the library
 exposed as a C++23 named module instead of a header.
 
 ```bash
-nix flake init -t github:Marcus441/nix-templates#cpp-prod-modern
+nix flake init -t 'github:Marcus441/nix-templates#cpp-prod-modern'
 git init && git add -A     # flakes see only tracked files
 nix develop                # or: direnv allow
 ```
@@ -44,7 +44,7 @@ Or build the Nix package, which compiles in a sandbox and runs the tests:
 
 ```bash
 nix build           # Clang
-nix build .#gcc     # GCC
+nix build '.#gcc'   # GCC
 nix run             # runs the built binary
 ```
 
@@ -64,7 +64,7 @@ gcovr --root . --exclude "build/" --gcov-executable "llvm-cov gcov" \
       build/coverage --txt
 ```
 
-Under `nix develop .#gcc`, drop `--gcov-executable` so `gcovr` uses GCC's own
+Under `nix develop '.#gcc'`, drop `--gcov-executable` so `gcovr` uses GCC's own
 `gcov`.
 
 ## CI

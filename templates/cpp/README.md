@@ -4,7 +4,7 @@ Dev environment for C/C++ — C++23 with CMake, build presets and sanitizers, an
 no dependency to fetch.
 
 ```bash
-nix flake init -t github:Marcus441/nix-templates#cpp
+nix flake init -t 'github:Marcus441/nix-templates#cpp'
 git init && git add -A     # flakes see only tracked files
 nix develop                # or: direnv allow
 ```

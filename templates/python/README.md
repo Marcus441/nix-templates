@@ -3,7 +3,7 @@
 Dev environment for Python with uv, ruff and mypy.
 
 ```bash
-nix flake init -t github:Marcus441/nix-templates#python
+nix flake init -t 'github:Marcus441/nix-templates#python'
 git init && git add -A     # flakes see only tracked files
 nix develop                # or: direnv allow
 uv sync                    # creates .venv and writes uv.lock — commit the lock

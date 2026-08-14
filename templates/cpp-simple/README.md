@@ -4,7 +4,7 @@ Dev environment for learning C++ with a plain Makefile. The lowest rung of the
 C++ ladder: a compiler, a debugger-friendly build, and nothing else to read.
 
 ```bash
-nix flake init -t github:Marcus441/nix-templates#cpp-simple
+nix flake init -t 'github:Marcus441/nix-templates#cpp-simple'
 git init && git add -A     # flakes see only tracked files
 nix develop                # or: direnv allow
 ```

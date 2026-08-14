@@ -4,7 +4,7 @@ Project templates for `nix flake init`. Each is a standalone flake providing a
 reproducible dev shell, and in most cases a buildable package.
 
 ```bash
-nix flake init -t github:Marcus441/nix-templates#rust
+nix flake init -t 'github:Marcus441/nix-templates#rust'
 ```
 
 With no `#name`, you get `shell` — a minimal dev shell to fill in.

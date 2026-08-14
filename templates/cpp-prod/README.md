@@ -4,7 +4,7 @@ Dev environment for production C/C++ — C++23, a library/executable split,
 GoogleTest, one build tree per sanitizer profile, and a CI workflow.
 
 ```bash
-nix flake init -t github:Marcus441/nix-templates#cpp-prod
+nix flake init -t 'github:Marcus441/nix-templates#cpp-prod'
 git init && git add -A     # flakes see only tracked files
 nix develop                # or: direnv allow
 ```
@@ -57,7 +57,7 @@ Or build the Nix package, which compiles in a sandbox and runs the tests:
 
 ```bash
 nix build           # Clang
-nix build .#gcc     # GCC
+nix build '.#gcc'   # GCC
 nix run             # runs the built binary
 ```
 
@@ -81,7 +81,7 @@ gcovr --root . --exclude "build/" --gcov-executable "llvm-cov gcov" \
 ```
 
 Both compilers emit the same `.gcno`/`.gcda` data; only the reader differs. The
-command above is for the default Clang shell. Under `nix develop .#gcc`, drop
+command above is for the default Clang shell. Under `nix develop '.#gcc'`, drop
 the `--gcov-executable` flag so `gcovr` uses GCC's own `gcov`:
 
 ```bash

@@ -3,7 +3,7 @@
 Dev environment for Node.js with TypeScript, already configured.
 
 ```bash
-nix flake init -t github:Marcus441/nix-templates#ts-node
+nix flake init -t 'github:Marcus441/nix-templates#ts-node'
 git init && git add -A     # flakes see only tracked files
 nix develop                # or: direnv allow
 npm install
@@ -68,7 +68,7 @@ than left to rot, so the version you get is one you can still patch.
 
   ```bash
   npm install --package-lock-only
-  nix run nixpkgs#prefetch-npm-deps -- package-lock.json
+  nix run 'nixpkgs#prefetch-npm-deps' -- package-lock.json
   ```
 
   Paste the printed hash into `npmDepsHash`. A stale hash fails the build with
