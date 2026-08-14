@@ -4,7 +4,7 @@ Dev environment for .NET, with F# tooling. The dev shell gives you the SDK; you
 scaffold the project itself with `dotnet new` after entering it.
 
 ```bash
-nix flake init -t github:Marcus441/nix-templates#dotnet
+nix flake init -t 'github:Marcus441/nix-templates#dotnet'
 git init && git add -A     # flakes see only tracked files
 nix develop                # or: direnv allow
 ```
@@ -47,7 +47,7 @@ Once the project has NuGet dependencies — that is, after `dotnet restore`:
 
 ```bash
 git add -A                                       # the flake must see the project
-nix build .#fetch-deps && ./result "$PWD/nix/deps.json"
+nix build '.#fetch-deps' && ./result "$PWD/nix/deps.json"
 ```
 
 Pass the path explicitly. Inside a flake the source is a store path, so the

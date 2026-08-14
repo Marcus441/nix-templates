@@ -3,7 +3,7 @@
 Dev environment for a minimal production-ready Rust project.
 
 ```bash
-nix flake init -t github:Marcus441/nix-templates#rust
+nix flake init -t 'github:Marcus441/nix-templates#rust'
 git init && git add -A     # flakes see only tracked files
 nix develop                # or: direnv allow
 ```

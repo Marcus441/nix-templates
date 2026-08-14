@@ -4,7 +4,7 @@ Dev environment for Typst documents, with fonts wired into the shell so `typst`
 can actually see them.
 
 ```bash
-nix flake init -t github:Marcus441/nix-templates#typst
+nix flake init -t 'github:Marcus441/nix-templates#typst'
 git init && git add -A     # flakes see only tracked files
 nix develop                # or: direnv allow
 typst watch docs/example.typ

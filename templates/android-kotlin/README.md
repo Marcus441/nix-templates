@@ -7,7 +7,7 @@ start from are Google's current ones rather than whatever was current when this
 template was written.
 
 ```bash
-nix flake init -t github:Marcus441/nix-templates#android-kotlin
+nix flake init -t 'github:Marcus441/nix-templates#android-kotlin'
 git init && git add -A          # flakes see only tracked files
 nix develop                     # or: direnv allow
 android create --name="My App" -o myapp
