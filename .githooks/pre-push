@@ -1,0 +1,56 @@
+#!/usr/bin/env bash
+# pre-push: refuse to force-push or delete main/master.
+#
+# git passes no --force flag to this hook, and the server rejects a plain
+# non-fast-forward push anyway — so a non-fast-forward reaching pre-push *is* a
+# force push. That is what the merge-base test below detects.
+#
+# Held to bash 3.2 (the macOS system bash), like the rest of this repo's shell.
+set -uo pipefail
+
+PROTECTED="main master"
+ZERO=0000000000000000000000000000000000000000
+
+protected() {
+  local ref="$1" name
+  case "$ref" in
+  refs/heads/*) name=${ref#refs/heads/} ;;
+  *) return 1 ;;
+  esac
+  local p
+  for p in $PROTECTED; do
+    [ "$name" = "$p" ] && return 0
+  done
+  return 1
+}
+
+failed=0
+refuse() {
+  failed=1
+  printf 'pre-push: %s\n' "$1" >&2
+}
+
+while read -r _local_ref local_sha remote_ref remote_sha; do
+  [ -n "${remote_ref:-}" ] || continue
+  protected "$remote_ref" || continue
+
+  if [ "$local_sha" = "$ZERO" ]; then
+    refuse "refusing to delete ${remote_ref#refs/heads/}"
+    continue
+  fi
+
+  # Nothing on the remote yet — creating the branch is not a rewrite.
+  [ "$remote_sha" = "$ZERO" ] && continue
+
+  if ! git merge-base --is-ancestor "$remote_sha" "$local_sha" 2>/dev/null; then
+    refuse "refusing to force-push ${remote_ref#refs/heads/}: $(git rev-parse --short "$remote_sha" 2>/dev/null || printf '%s' "$remote_sha") is not an ancestor of the commit being pushed"
+  fi
+done
+
+if [ "$failed" -ne 0 ]; then
+  printf 'pre-push: this rewrites history other clones already have.\n' >&2
+  printf 'pre-push: land the change as a new commit, or push a branch and open a PR.\n' >&2
+  exit 1
+fi
+
+exit 0
