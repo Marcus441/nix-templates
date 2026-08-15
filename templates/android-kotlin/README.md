@@ -251,9 +251,23 @@ workflow, as above.
 - **On NixOS you need `programs.nix-ld.enable = true`.** The SDK packages
   `android sdk install` downloads are Google's own prebuilt FHS binaries, and
   without nix-ld's dynamic loader they do not run at all. With it, `adb`,
-  `aapt2` and the build tools work as shipped. The emulator additionally wants
-  X11 libraries — add them to `programs.nix-ld.libraries` if it fails on a
-  missing `libX11.so.6`, and on Wayland try `QT_QPA_PLATFORM=xcb`.
+  `aapt2` and the build tools work as shipped. The emulator needs more than
+  that; see the nix-ld note below.
+- **The emulator's bundled Qt has no Wayland plugin.** It ships exactly five —
+  `linuxfb`, `minimal`, `offscreen`, `vnc`, `xcb` — so on a Wayland session it
+  aborts with *"no Qt platform plugin could be initialized"*. The dev shell
+  wraps `android` with `QT_QPA_PLATFORM=xcb` so it runs under XWayland. The
+  wrapper is scoped to `android` and the emulator it spawns rather than exported
+  into the shell, so no other Qt application is dragged onto XWayland; it sets
+  the variable outright, because a session-wide `QT_QPA_PLATFORM=wayland` is
+  exactly the case that needs overriding. On X11 it changes nothing — `xcb` is
+  what an X11 session uses anyway.
+- **An emulator started from Android Studio does not go through that wrapper.**
+  Studio launched from a desktop entry inherits the session environment, not the
+  dev shell, so the Wayland abort comes back. Either set `QT_QPA_PLATFORM` for
+  the session in `~/.config/environment.d/`, or start emulators with `android
+  emulator start` from inside the shell. Same class of thing as the language
+  server above: what the dev shell fixes, it fixes only for its own children.
 - **`JAVA_HOME` is `pkgs.jdk17.home`, not `"${pkgs.jdk17}"`.** Only the former
   contains the `release` file that Gradle reads to identify a toolchain. With
   the latter, the generated project's `jvmToolchain(17)` finds no local match

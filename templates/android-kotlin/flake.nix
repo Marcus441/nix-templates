@@ -16,11 +16,20 @@
           })
       );
   in {
-    devShells = forAllSystems (pkgs: {
+    devShells = forAllSystems (pkgs: let
+      android-cli = pkgs.symlinkJoin {
+        name = "android-cli-xcb";
+        paths = [pkgs.android-cli];
+        nativeBuildInputs = [pkgs.makeWrapper];
+        postBuild = ''
+          wrapProgram $out/bin/android --set QT_QPA_PLATFORM xcb
+        '';
+      };
+    in {
       default = pkgs.mkShellNoCC {
         name = "android-kotlin";
         packages = [
-          pkgs.android-cli
+          android-cli
           pkgs.jdk17
           pkgs.gradle_9
           pkgs.kotlin
