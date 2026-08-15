@@ -215,6 +215,17 @@ the flag into `~/.androidrc`:
 echo "--sdk=$HOME/Android/Sdk" > ~/.androidrc
 ```
 
+Three variables split the job, and they are not interchangeable:
+
+| Variable | Default | What it holds |
+| --- | --- | --- |
+| `ANDROID_HOME` | `~/Android/Sdk` | the SDK itself |
+| `ANDROID_USER_HOME` | `~/.android` | CLI state, and the CLI unpacks itself into `$ANDROID_USER_HOME/cli` |
+| `ANDROID_AVD_HOME` | `$ANDROID_USER_HOME/avd` | AVDs — and the only one of the three the emulator binary reads |
+
+The dev shell sets `ANDROID_AVD_HOME` from the other two; see
+[Notes](#notes) for why it has to.
+
 ## Setup (non-Nix)
 
 1. Install JDK 17.
@@ -257,6 +268,14 @@ workflow, as above.
 - **First run writes to `$HOME`.** It unpacks an embedded installation into
   `~/.android` and prints the terms of service and the metrics notice once. It
   does not block on input, so it is safe in scripts and CI.
+- **`ANDROID_USER_HOME` does not relocate AVD lookup,** which is why the dev
+  shell sets `ANDROID_AVD_HOME`. `android emulator create` writes to
+  `$ANDROID_USER_HOME/avd`, but the emulator binary has never heard of that
+  variable — it searches `ANDROID_AVD_HOME`, then `ANDROID_SDK_HOME/avd`, then
+  `~/.android/avd`. Relocate `ANDROID_USER_HOME` on its own and the emulator
+  reports `Unknown AVD name` for a device that is visibly on disk. The shell's
+  export derives from whatever you have set, so it is a no-op on a stock setup
+  and defers to an explicit `ANDROID_AVD_HOME`.
 - **`ANDROID_SDK_ROOT` is ignored** by the CLI; only `ANDROID_HOME` is read.
   Gradle still honours both, and `local.properties` beats either.
 - `nix fmt` formats `flake.nix` with alejandra.

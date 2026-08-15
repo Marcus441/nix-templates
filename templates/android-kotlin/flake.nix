@@ -27,6 +27,9 @@
           pkgs.ktlint
         ];
         env.JAVA_HOME = pkgs.jdk17.home;
+        shellHook = ''
+          export ANDROID_AVD_HOME="''${ANDROID_AVD_HOME:-''${ANDROID_USER_HOME:-$HOME/.android}/avd}"
+        '';
       };
     });
 
