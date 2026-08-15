@@ -1,0 +1,183 @@
+#!/usr/bin/env bash
+# commit-msg: the mechanically checkable half of the commit convention.
+#
+# Judgement — "one logical change per commit", refactor kept apart from
+# behaviour, PR scope — is prose and lives in CLAUDE.md §9. This hook never
+# tries to decide those.
+#
+# Held to bash 3.2 (the macOS system bash) for the same reason
+# scripts/test-template.sh is: no mapfile, no ${var,,}, no associative arrays.
+#
+# LC_ALL=C makes ${#s} a byte count, so line width is measured by charlen()
+# below rather than by the locale. This repo's prose is full of em-dashes and
+# §, and a byte count would reject correct lines.
+set -uo pipefail
+export LC_ALL=C
+
+SUBJECT_MAX=72 # whole subject line
+DESC_MAX=55    # subject after the `type(scope): ` prefix
+BODY_MAX=80    # body prose; see the exemptions in body_exempt()
+TOKEN_MIN=40   # an unbreakable token this long excuses a long line
+
+msg_file="${1:-}"
+[ -n "$msg_file" ] && [ -f "$msg_file" ] || exit 0
+
+# Characters, not bytes: strip UTF-8 continuation bytes and count what is left.
+charlen() {
+  local s
+  s=$(printf '%s' "$1" | tr -d '\200-\277')
+  printf '%s' "${#s}"
+}
+
+lower() {
+  printf '%s' "$1" | tr 'A-Z' 'a-z'
+}
+
+failed=0
+fail() {
+  failed=1
+  printf 'commit-msg: %s\n' "$1" >&2
+  if [ $# -gt 1 ]; then
+    printf '  | %s\n' "$2" >&2
+  fi
+}
+
+# Read the message as git will store it: comments dropped, everything from the
+# scissors line down discarded.
+lines=()
+while IFS= read -r line || [ -n "$line" ]; do
+  case "$line" in
+  \#*">8"*) break ;;
+  \#*) continue ;;
+  esac
+  lines[${#lines[@]}]="$line"
+done <"$msg_file"
+
+# Trim leading and trailing blank lines.
+while [ ${#lines[@]} -gt 0 ] && [ -z "${lines[0]}" ]; do
+  lines=("${lines[@]:1}")
+done
+while [ ${#lines[@]} -gt 0 ] && [ -z "${lines[$((${#lines[@]} - 1))]}" ]; do
+  unset "lines[$((${#lines[@]} - 1))]"
+done
+
+# An aborted commit leaves nothing behind. Let git report that, not us.
+[ ${#lines[@]} -gt 0 ] || exit 0
+
+subject="${lines[0]}"
+
+# Consumed by rebase, or written by git itself. Not ours to judge.
+case "$subject" in
+"fixup!"* | "squash!"* | "amend!"* | "Merge "* | 'Revert "'*) exit 0 ;;
+esac
+git_dir=$(git rev-parse --git-dir 2>/dev/null || true)
+[ -n "$git_dir" ] && [ -e "$git_dir/MERGE_HEAD" ] && exit 0
+
+# GitHub appends ` (#123)` to a squash subject. Do not spend the budget on it.
+subject_bare=$(printf '%s' "$subject" | sed -E 's/ \(#[0-9]+\)$//')
+
+types='build|chore|ci|docs|feat|fix|perf|refactor|revert|style|test'
+conv_re="^($types)(\\([a-z0-9][a-z0-9._/-]*\\))?!?: ."
+
+if [[ ! $subject_bare =~ $conv_re ]]; then
+  fail 'subject is not a conventional commit: expected `type(scope): description`' "$subject"
+  fail "  valid types: $(printf '%s' "$types" | tr '|' ' ')  (the scope is optional)"
+else
+  desc=$(printf '%s' "$subject_bare" | sed -E "s/^($types)(\([^)]*\))?!?: //")
+
+  n=$(charlen "$subject_bare")
+  if [ "$n" -gt "$SUBJECT_MAX" ]; then
+    fail "subject is $n chars, limit $SUBJECT_MAX" "$subject_bare"
+  fi
+
+  n=$(charlen "$desc")
+  if [ "$n" -gt "$DESC_MAX" ]; then
+    fail "subject description is $n chars, limit $DESC_MAX (the \`type(scope): \` prefix is not counted)" "$desc"
+  fi
+
+  case "$subject_bare" in
+  *.) fail "subject ends with a period" "$subject_bare" ;;
+  esac
+
+  desc_l=$(lower "$desc")
+  first=${desc_l%% *}
+  first=${first%%[!a-z]*}
+  case "$first" in
+  fixed | added | updated | changed | removed | refactored)
+    fail "subject opens with \`$first\`: use the imperative mood, as in \"fix\" rather than \"fixed\"" "$desc"
+    ;;
+  esac
+
+  case "$desc_l" in
+  wip | update | "update file" | updates | fix | fixes | misc | minor | cleanup | changes | stuff | temp | tmp | various | more | final)
+    fail "subject says nothing: \`$desc\`" "$subject_bare"
+    ;;
+  esac
+
+  case "$desc" in
+  *" "*) ;;
+  *) fail "subject description is a single word: \`$desc\`" "$subject_bare" ;;
+  esac
+
+  # A bare tool invocation restates the command, not the change. Bounded two
+  # ways so prose survives: it has to be short, and it has to read like a
+  # command rather than a sentence. "make the emulator start" opens with a tool
+  # name and is still English.
+  tools='nix|nix-build|nix-instantiate|nix-shell|git|npm|npx|yarn|pnpm|cargo|rustc|rustfmt|clippy'
+  tools="$tools|gradle|gradlew|\\./gradlew|make|cmake|ctest|ninja|dotnet|uv|pip|pipx|python|python3"
+  tools="$tools|pytest|ruff|mypy|black|isort|shfmt|shellcheck|alejandra|nixfmt|treefmt|ktlint[a-z]*"
+  tools="$tools|eslint|prettier|tsc|tsx|vitest|jest|go|docker|kubectl|terraform"
+  tool_re="^(run|ran|running)?[[:space:]]*($tools)([[:space:]]|$)"
+  prose_re='(^| )(a|an|the|to|in|on|of|for|so|and|or|it|its|that|this|when|from|with|without|into|under|over|every|no|not)( |$)'
+  words=$(printf '%s' "$desc" | wc -w | tr -d '[:space:]')
+  if [ "$words" -le 4 ] && [[ $desc_l =~ $tool_re ]] && [[ ! $desc_l =~ $prose_re ]]; then
+    fail "subject is a bare tool invocation: say what changed, not what you ran" "$subject_bare"
+  fi
+fi
+
+# A long line is excused when wrapping it would break it, or when it is a
+# trailer git itself will parse.
+body_exempt() {
+  local line="$1"
+
+  # Indented: a code block, a path, or captured tool output.
+  case "$line" in
+  [[:space:]]*) return 0 ;;
+  esac
+
+  case "$(lower "$line")" in
+  co-authored-by:* | signed-off-by:* | claude-session:* | reviewed-by:* | tested-by:* | \
+    acked-by:* | reported-by:* | suggested-by:* | closes:* | refs:* | link:* | change-id:*)
+    return 0
+    ;;
+  esac
+
+  # A single unbreakable token — a URL, a store path, a hash.
+  printf '%s' "$line" | tr ' \t' '\n\n' | awk -v n="$TOKEN_MIN" 'length($0) >= n { found = 1 } END { exit !found }'
+}
+
+if [ ${#lines[@]} -gt 1 ]; then
+  if [ -n "${lines[1]}" ]; then
+    fail "line 2 must be blank: separate the subject from the body" "${lines[1]}"
+  fi
+
+  i=2
+  while [ "$i" -lt ${#lines[@]} ]; do
+    line="${lines[$i]}"
+    if [ "${#line}" -gt "$BODY_MAX" ]; then
+      n=$(charlen "$line")
+      if [ "$n" -gt "$BODY_MAX" ] && ! body_exempt "$line"; then
+        fail "body line $((i + 1)) is $n chars, limit $BODY_MAX" "$line"
+      fi
+    fi
+    i=$((i + 1))
+  done
+fi
+
+if [ "$failed" -ne 0 ]; then
+  printf 'commit-msg: the rules are in .githooks/commit-msg; the judgement half is CLAUDE.md §9.\n' >&2
+  printf 'commit-msg: indented lines, trailers and long URLs are exempt from the body width.\n' >&2
+  exit 1
+fi
+
+exit 0
