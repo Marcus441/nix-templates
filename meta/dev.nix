@@ -35,7 +35,13 @@
         pkgs.shellcheck
         config.treefmt.build.wrapper
       ];
+      # core.hooksPath is per-clone local config, so a tracked .githooks/ does
+      # nothing until someone points git at it. This is the only per-checkout
+      # entry point the repo has; the guard keeps it off the reload path.
       shellHook = ''
+        if [ "$(git config --get core.hooksPath)" != ".githooks" ]; then
+          git config core.hooksPath .githooks
+        fi
         echo "nix flake check              static checks"
         echo "./scripts/test-template.sh   instantiate and test every template"
       '';
