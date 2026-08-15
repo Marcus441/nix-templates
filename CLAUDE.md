@@ -90,6 +90,7 @@ meta/
   harness.nix             # packages.registry-json, apps.test
   dev.nix                 # devShell + formatter
 scripts/test-template.sh  # the real test harness
+.githooks/                # commit-msg, pre-push; core.hooksPath, set by the dev shell
 templates/<name>/         # one directory per template, standalone, self-contained
 docs/decisions/           # why a call was made
 ```
@@ -140,6 +141,13 @@ a negation line.
 - **`git add -A` before every `nix` command.** Flakes see only tracked files, so
   a newly written template file is invisible to `nix flake init -t .#foo` — and
   the failure looks like a missing file, not an unstaged one. Hook enforced.
+- **Therefore commit with an explicit pathspec: `git commit -- <paths>`.** The
+  same hook stages the *whole* working tree on any command mentioning nix or
+  `test-template.sh`, including changes that are not yours, so by the time you
+  commit the index is not a record of what you meant to include. A pathspec
+  commits those paths whatever the index holds. Without one, a nine-file change
+  has gone in as thirty-three. Run `git status` first and confirm every
+  modified file is yours; if one is not, leave it and say so.
 - **`nix flake check` does not test templates.** It validates *this* flake and
   the shape of the `templates` output. It never evaluates a template's own
   flake. Only `scripts/test-template.sh` does that.
@@ -224,9 +232,25 @@ items are deleted and survivors keep their numbers.
   matters most for exactly the changes that feel safe enough to skip it: a
   rename breaks every init command in the wild, and an unlocked template's
   breakage shows up in someone else's project, not here. Branch names follow
-  the commit scope: `feat/…`, `fix/…`, `refactor/…`, `docs/…`.
-- **Small, single-concern commits.** Conventional-commit style with a scope,
-  matching existing history: `feat(rust):`, `fix(ci):`, `docs(android):`.
+  the commit scope: `feat/…`, `fix/…`, `refactor/…`, `docs/…`. Rebase onto
+  `main` before opening the PR if it has diverged, and never force-push a
+  branch someone else may have pulled — `pre-push` refuses that for `main` and
+  `master`, but it cannot know who is watching a feature branch.
+- **A PR is reviewable in one sitting, or it is two PRs.** Title follows the
+  commit-subject convention. The description is one sentence of *why*, then dot
+  points covering the decisions — not a narration of the diff, which the files
+  tab already shows. If it will be squash-merged, that description **is** the
+  squash commit body, so write it as one.
+- **Small, single-concern commits.** One logical change each: if the subject
+  wants the word "and", it is probably two commits. The reverse is not a
+  licence to split — a change touching twelve files for one reason is still one
+  commit, and a long body is never a reason to break it into an incoherent
+  history. Keep a reformat or a rename out of a commit that changes behaviour;
+  they are separately reviewable and mixing them makes neither reviewable.
+- **The mechanical half is `.githooks/commit-msg`,** so it is not restated here:
+  subject shape and length, imperative mood, contentless subjects and body
+  width. It runs from `core.hooksPath`, which is per-clone local config — the
+  dev shell sets it, so a checkout that never enters the shell has no hooks.
 - **Rationale in the commit message,** not in comments. A decision that recurs
   goes in `docs/decisions/`.
 - **Adding a template is one move** — use the **add-template** skill. Directory,
