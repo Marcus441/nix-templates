@@ -11,6 +11,17 @@
       projectRootFile = "flake.nix";
       programs.alejandra.enable = true;
       programs.shfmt.enable = true;
+      # The upstream default is *.sh, *.bash, *.envrc, *.envrc.* — restated
+      # because a definition replaces it rather than extending it. Git requires
+      # its hooks be named `commit-msg` and `pre-push`, with no extension, so
+      # without .githooks/* they would be shell the formatter cannot see.
+      programs.shfmt.includes = [
+        "*.sh"
+        "*.bash"
+        "*.envrc"
+        "*.envrc.*"
+        ".githooks/*"
+      ];
       settings.global.excludes = [
         "*.lock"
       ];
