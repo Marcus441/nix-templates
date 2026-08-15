@@ -251,8 +251,27 @@ workflow, as above.
 - **On NixOS you need `programs.nix-ld.enable = true`.** The SDK packages
   `android sdk install` downloads are Google's own prebuilt FHS binaries, and
   without nix-ld's dynamic loader they do not run at all. With it, `adb`,
-  `aapt2` and the build tools work as shipped. The emulator needs more than
-  that; see the nix-ld note below.
+  `aapt2` and the build tools work as shipped. The emulator needs a graphics
+  stack on top of that:
+
+  ```nix
+  programs.nix-ld.libraries = with pkgs; [
+    libbsd dbus libdrm expat libgbm nspr nss libpng libpulseaudio libuuid zlib
+    libice libsm libx11 libxcb libxext libxi libxkbfile
+    libglvnd libxau vulkan-loader wayland
+  ];
+  ```
+
+  Three of those have sonames that do not match the attribute name (`nspr`,
+  `nss`, `libglvnd`), so they are easy to leave out by eye.
+- **`WARNING | Your GPU drivers may have a bug. Switching to software
+  rendering.` usually is not a driver bug.** The emulator `dlopen`s the host GL
+  and Vulkan libraries, and under nix-ld a missing one fails silently rather
+  than as a link error — so a loader miss and a genuine driver rejection look
+  identical from the log. It still boots, just slowly. `-gpu host` tells the two
+  apart: a hard failure is a real rejection, a working window is misdetection,
+  and the fix for the latter is `vulkan-loader` and `libglvnd` in the list
+  above.
 - **The emulator's bundled Qt has no Wayland plugin.** It ships exactly five —
   `linuxfb`, `minimal`, `offscreen`, `vnc`, `xcb` — so on a Wayland session it
   aborts with *"no Qt platform plugin could be initialized"*. The dev shell
@@ -279,9 +298,11 @@ workflow, as above.
 - **The CLI reports usage data to Google by default** — commands, subcommands
   and flag names, not their values. `--no-metrics` turns it off, per-invocation
   or once in `~/.androidrc`.
-- **First run writes to `$HOME`.** It unpacks an embedded installation into
-  `~/.android` and prints the terms of service and the metrics notice once. It
-  does not block on input, so it is safe in scripts and CI.
+- **First run writes to `$ANDROID_USER_HOME`,** `~/.android` by default. The
+  binary in the store is a thin launcher; it unpacks the real CLI into
+  `$ANDROID_USER_HOME/cli` and runs it on a bundled JRE, and prints the terms of
+  service and the metrics notice once. It does not block on input, so it is safe
+  in scripts and CI.
 - **`ANDROID_USER_HOME` does not relocate AVD lookup,** which is why the dev
   shell sets `ANDROID_AVD_HOME`. `android emulator create` writes to
   `$ANDROID_USER_HOME/avd`, but the emulator binary has never heard of that
