@@ -7,10 +7,23 @@ description: >-
 
 # Lock policy
 
-**No template ships a committed `flake.lock` today** (CLAUDE.md §5). All eleven
-resolve current nixpkgs on first use, so there is no pin to bump — the sections
-below describe what to do if one ever gets locked again, and the bar it has to
-clear first.
+**No template ships a committed lock today** (CLAUDE.md §5). All twelve resolve
+current nixpkgs on first use, so there is no pin to bump — the sections below
+describe what to do if one ever gets locked again, and the bar it has to clear
+first.
+
+Two lock formats now. `kind = "flake"` templates use `flake.lock`, written by
+`nix flake lock`; `kind = "devenv"` templates use `devenv.lock`, written by
+`devenv update`. `lock-policy` branches on `kind` and checks the matching
+filename, and `.gitignore` ignores both repo-wide.
+
+**A `devenv.lock` protects less than a `flake.lock`, and this is the thing to
+know before reaching for one.** It pins nixpkgs, but devenv's own service
+modules ship inside the `devenv` binary the consumer installed — so locking a
+devenv template does not hold them still, and when one of them breaks there is
+no pin that helps and no in-template fix. See
+`templates/devenv-postgres/README.md` for how that was handled the first time
+it happened.
 
 The only tracked lock in the repository is the root's, which belongs to this
 repo's own flake and reaches no consumer. Bare `nix flake update` is
@@ -32,10 +45,12 @@ upstream did.
 
 ## Locking a template
 
-Set `locked = true` in `meta/templates.nix`, add `!/<name>/flake.lock` to
-`.gitignore`, generate the lock with `nix flake lock` in the template directory,
-and commit. The `lock-policy` check enforces that the flag and the tracked file
-agree, so the two must move together.
+Set `locked = true` in `meta/templates.nix`, add the negation line to
+`.gitignore` — `!/templates/<name>/flake.lock`, or
+`!/templates/<name>/devenv.lock` for a devenv template — generate the lock in
+the template directory with `nix flake lock` or `devenv update`, and commit.
+The `lock-policy` check enforces that the flag and the tracked file agree, so
+the two must move together.
 
 ## Unlocking a template
 

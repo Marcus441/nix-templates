@@ -15,14 +15,24 @@ fails `nix flake check`.
 ## 1. The directory
 
 `<name>/` — the name is the template name, and the registry derives `path` from
-it. Five files are mandatory (Inv. 6, checked):
+it.
+
+**Decide the kind first, because it decides the artifact.** `kind = "flake"` is
+the default and almost always right. Reach for `kind = "devenv"` only when the
+template needs *supervised services* — a database, a process that has to be up
+before anything else works. That is the only thing it buys, and it costs the
+consumer a devenv install; `docs/decisions/devenv-templates.md` has the
+reasoning.
+
+Four files are mandatory for both kinds, plus the artifact (Inv. 6, checked):
 
 | File | Content |
 | --- | --- |
-| `flake.nix` | Standalone. See `.claude/rules/template-flake-conventions.md` for the canonical preamble — copy it exactly, including the nixpkgs spelling, the `systems` list and the `...` ellipsis. |
+| `flake.nix` *(kind = flake)* | Standalone. See `.claude/rules/template-flake-conventions.md` for the canonical preamble — copy it exactly, including the nixpkgs spelling, the `systems` list and the `...` ellipsis. |
+| `devenv.nix` + `devenv.yaml` *(kind = devenv)* | Native devenv, never the flake integration. **No `flake.nix`** — shipping one fails `template-hygiene`. See `.claude/rules/template-devenv-conventions.md`. |
 | `.editorconfig` | Copy the `[*]` block from `templates/cpp/.editorconfig` verbatim, then append only the block the language needs (4 spaces for Python/Kotlin/C#, a line length otherwise). No language block at all if 2 spaces is right. |
-| `.envrc` | `use flake`, plus a `PATH_add` only where it earns one — `node_modules/.bin`, `build` |
-| `.gitignore` | Must **open** with the four-line Nix block (`# Nix`, `result`, `result-*`, `.direnv/`), then the language's build output |
+| `.envrc` | `use flake`, plus a `PATH_add` only where it earns one — `node_modules/.bin`, `build`. For a devenv template: `eval "$(devenv direnvrc)"` then `use devenv` |
+| `.gitignore` | Must **open** with the four-line Nix block (`# Nix`, `result`, `result-*`, `.direnv/`), then the language's build output. A devenv template adds `.devenv*` and `devenv.local.nix` — but **not** `devenv.lock`, which the consumer commits |
 | `README.md` | Opens with `# <name>`, and must have a `## Building` section. `templates/rust/README.md` is the model. |
 
 The flake **cannot** reference anything outside this directory (Inv. 1). If it
@@ -36,6 +46,7 @@ code and record the duplication in CLAUDE.md §7.
 ```nix
 <name> = {
   description = "Dev environment for …";   # required, and the flake must match
+  kind = "devenv";                         # omit for a flake template
   tier = "build";                          # what CI can actually prove
   smoke = ["<tool> --version"];            # at tier >= shell
 };
@@ -45,10 +56,14 @@ code and record the duplication in CLAUDE.md §7.
 `description-agrees` checks it. So does `systems`: whatever you put here has to
 appear verbatim as the `systems` line in the flake.
 
-Choose the **highest tier that honestly passes**:
+Choose the **highest tier that honestly passes**. What each tier runs depends
+on the kind — CLAUDE.md §3 has both columns; for devenv they are `devenv info`,
+`devenv shell --` and `devenv test`:
 
-- `build` — the template has a `packages.default` that builds in the sandbox,
-  with no network. Preferred.
+- `build` — a flake template with a `packages.default` that builds in the
+  sandbox with no network, or a devenv template whose `enterTest` proves the
+  services came up. Preferred. For devenv this is the *only* rung that starts
+  anything, so a devenv template below it proves almost nothing.
 - `shell` — dev-shell-only template, or the package needs user scaffolding
   first. Needs a `reason`.
 - `eval` — cross-compiled or network-dependent. Needs a `reason`, and usually
@@ -63,6 +78,10 @@ not "eval only".
 ## 3. The lock decision
 
 Default `locked = false`; the template resolves current nixpkgs on first use.
+
+For `kind = "devenv"` the lock is `devenv.lock` and the negation line matches
+it. Be aware it buys less: it pins nixpkgs but **not** devenv's own modules,
+which ship inside the consumer's `devenv` binary.
 
 Set `locked = true` only when resolution is slow or fragile. No template meets
 that bar today, so a new one almost certainly does not either — and being the
@@ -84,7 +103,8 @@ nix flake check                         # static layer: registry, spelling, hygi
 ```
 
 Both must be green before the template ships. Do not claim it works on the
-strength of having read it.
+strength of having read it. The harness resolves `devenv` itself when it is not
+on `PATH`, so a devenv template needs no setup beyond this.
 
 ## Renaming or removing
 
