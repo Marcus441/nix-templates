@@ -7,6 +7,10 @@ paths: "templates/*/flake.nix"
 A template flake is read by someone who has never seen this repo, and copied
 into a project that has no relationship to it. Optimise for that reader.
 
+This is the document for `kind = "flake"`, which is the default and eleven of
+the twelve templates. A `kind = "devenv"` template has no `flake.nix` at all —
+`.claude/rules/template-devenv-conventions.md` is its sibling.
+
 ## The canonical preamble
 
 Every template opens the same way. Deviating from it fails `checks.flake-inputs`

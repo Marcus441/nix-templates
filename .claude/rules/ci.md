@@ -25,6 +25,10 @@ from the `checks` output, and this repo's checks are static and say nothing
 about whether a template works. The `tier` decides *which commands run*, not
 just which attribute to build, so the matrix has to carry it.
 
+The matrix carries `kind` alongside `name` and `tier`. Nothing branches on it
+today — the harness resolves devenv itself rather than needing an install step
+— but it is what the cache key and any future per-kind step read.
+
 The matrix has two dimensions: template × runner. Every entry in a template's
 `systems` produces a leg, so a system a template claims is a system something
 tests:
@@ -43,6 +47,12 @@ summary prints any `systems` entry it does not cover. That list should stay
 empty. **Adding a system to a template's `systems` without a runner for it is
 how the repo goes back to claiming things nothing proves** — add the runner, or
 do not make the claim.
+
+**The cache key hashes both kinds' artifacts in one `hashFiles`.** That call
+returns `""` for a pattern matching nothing rather than failing, so a devenv
+leg keyed only on `flake.nix` would not go red — its key would quietly become a
+constant and stop invalidating when `devenv.nix` changed. Listing the files
+rather than `templates/{0}/*` keeps a README edit from churning the key.
 
 Cache the `x86_64-linux` legs only. The Actions cache budget is 10 GB per
 repository and the `cpp`/`rust` closures are large; caching all three runners
