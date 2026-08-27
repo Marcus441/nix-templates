@@ -8,7 +8,7 @@ A template flake is read by someone who has never seen this repo, and copied
 into a project that has no relationship to it. Optimise for that reader.
 
 This is the document for `kind = "flake"`, which is the default and eleven of
-the twelve templates. A `kind = "devenv"` template has no `flake.nix` at all —
+the fourteen templates. A `kind = "devenv"` template has no `flake.nix` at all —
 `.claude/rules/template-devenv-conventions.md` is its sibling.
 
 ## The canonical preamble
@@ -46,7 +46,7 @@ and, more importantly, teaches the reader a second idiom for no reason.
 Take `self` as the first argument **only** when it is used —
 `inputsFrom = [self.packages.${pkgs.stdenv.hostPlatform.system}.default]` is the
 usual reason. `forAllSystems` passes `pkgs`, not `system`, so that the helper is
-one argument in all eleven templates; recover the system from `pkgs` rather than
+one argument in all eleven flake templates; recover the system from `pkgs` rather than
 threading a second argument through. Spell it
 `pkgs.stdenv.hostPlatform.system` — **not `pkgs.system`**, which nixpkgs now
 deprecates and warns about on every `nix develop`, in the consumer's project
