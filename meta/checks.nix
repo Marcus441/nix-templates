@@ -43,13 +43,25 @@
         (builtins.readDir root));
 
     # The `description` of a template's own flake.nix, as text. Null when the
-    # template has none. Extracted rather than imported: importing every
-    # template's flake.nix would make a syntax error in any one of them fail
-    # the whole root evaluation, including `nix flake show`.
+    # template has none, and null when it has no flake.nix at all. Extracted
+    # rather than imported: importing every template's flake.nix would make a
+    # syntax error in any one of them fail the whole root evaluation,
+    # including `nix flake show`.
+    #
+    # A missing file is that same failure class and is guarded for the same
+    # reason — builtins.readFile on a path that does not exist throws at eval,
+    # so one unreadable template would take `nix flake show` down for all of
+    # them. That is a consumer-facing break: `nix flake init -t` and
+    # `nix build .#registry-json` keep working, so nothing a maintainer runs
+    # would notice.
     descriptionOf = n: let
+      f = root + "/${n}/flake.nix";
       m =
-        builtins.match ''.*[\n]?[[:space:]]*description = "([^"]*)";.*''
-        (builtins.readFile (root + "/${n}/flake.nix"));
+        if !(builtins.pathExists f)
+        then null
+        else
+          builtins.match ''.*[\n]?[[:space:]]*description = "([^"]*)";.*''
+          (builtins.readFile f);
     in
       if m == null
       then null
@@ -84,14 +96,21 @@
       # from the template it was copied from is the cheapest signal that other
       # lines were carried over too. It is how `node-rest-api` was found to
       # ship `node`'s flake, and `python-jetson` to ship `cpp-jetson`'s.
+      #
+      # Read from the registry rather than from the artifact. The registry
+      # entry is the line a human copies first, `description-agrees` ties the
+      # two together for a flake, and this way the check is total: a flake
+      # whose description the regex cannot extract used to fall out of *both*
+      # checks silently, and a template with no flake.nix has no artifact
+      # description to compare at all.
       description-unique = decided "description-unique" (
         let
-          described = lib.filter (n: descriptionOf n != null) names;
-          countOf = d: lib.count (n: descriptionOf n == d) described;
-          dupes = lib.unique (lib.filter (d: countOf d > 1) (map descriptionOf described));
+          descOf = n: templates.${n}.description;
+          countOf = d: lib.count (n: descOf n == d) names;
+          dupes = lib.unique (lib.filter (d: countOf d > 1) (map descOf names));
         in
           map (
-            d: "shared by ${lib.concatStringsSep ", " (lib.filter (n: descriptionOf n == d) described)}: \"${d}\""
+            d: "shared by ${lib.concatStringsSep ", " (lib.filter (n: descOf n == d) names)}: \"${d}\""
           )
           dupes
       );
