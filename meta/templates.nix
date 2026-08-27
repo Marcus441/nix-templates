@@ -55,6 +55,13 @@
       smoke = ["make --version" "clangd --version" "cpplint --version"];
     };
 
+    devenv = {
+      description = "Minimal devenv environment to fill in";
+      kind = "devenv";
+      tier = "shell";
+      reason = "intentionally an empty stub; there is nothing to build or test";
+    };
+
     devenv-postgres = {
       description = "devenv environment with a local PostgreSQL service";
       kind = "devenv";
