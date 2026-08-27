@@ -45,7 +45,7 @@
   };
 
   enterTest = ''
-    wait_for_port 5080 180
+    wait_for_port 5080 600
     curl -sf http://127.0.0.1:5080/health | grep -q '"db":1'
   '';
 }

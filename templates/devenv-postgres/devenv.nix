@@ -10,6 +10,7 @@
       sleep 1
     done
     pg_isready
+    psql --dbname app --command 'drop table if exists smoke'
     psql --dbname app --command 'create table smoke (n integer)'
     psql --dbname app --command 'insert into smoke values (1)'
     test "$(psql --dbname app --tuples-only --no-align --command 'select n from smoke')" = 1
