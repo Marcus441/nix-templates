@@ -46,11 +46,12 @@ prefer renaming the directory.
 | Field | Notes |
 | --- | --- |
 | `description` | Required. Shown by `nix flake show` and `nix flake init -t`. |
+| `kind` | `flake` \| `devenv` — which artifact the template ships, and therefore which commands prove it. Defaults to `flake`. CLAUDE.md Inv. 4. |
 | `tier` | `eval` \| `shell` \| `build` — CLAUDE.md §3. |
-| `smoke` | Commands run inside `nix develop` at tier ≥ `shell`. Cheap and specific: `cargo --version`, not `cargo build`. |
-| `systems` | Defaults to the flake's `systems`. Narrow only with a `reason`. |
-| `locked` | Ships a committed `flake.lock`. Must match `.gitignore` — CLAUDE.md §5. |
-| `unfree` | The harness exports `NIXPKGS_ALLOW_UNFREE=1` and adds `--impure`. Not needed when the template sets `config.allowUnfree` in its own `import nixpkgs`, which every template that needs it now does — so no entry sets this today. Prefer fixing the template over setting the flag: `--impure` is a cost the consumer pays too. |
+| `smoke` | Commands run in the template's shell at tier ≥ `shell` — `nix develop`, or `devenv shell --`. Cheap and specific: `cargo --version`, not `cargo build`. |
+| `systems` | Defaults to the flake's `systems`. Narrow only with a `reason`. For `kind = "devenv"` this is the *only* place the claim lives — there is no artifact line to grep — so the CI matrix is the sole enforcement. |
+| `locked` | Ships a committed lock — `flake.lock`, or `devenv.lock` for `kind = "devenv"`. Must match `.gitignore` — CLAUDE.md §5. Note a `devenv.lock` pins nixpkgs but *not* devenv's modules, so it protects less than a `flake.lock` does. |
+| `unfree` | Not available for `kind = "devenv"` — it adds a `nix` flag, and the harness refuses it outright rather than dropping it silently; use `allowUnfree` in `devenv.yaml`. The harness exports `NIXPKGS_ALLOW_UNFREE=1` and adds `--impure`. Not needed when the template sets `config.allowUnfree` in its own `import nixpkgs`, which every template that needs it now does — so no entry sets this today. Prefer fixing the template over setting the flag: `--impure` is a cost the consumer pays too. |
 | `broken` | Failure at this tier is expected and tracked. The harness reports XFAIL instead of FAIL, and reports **XPASS as a failure** if it starts working — so the flag cannot rot. |
 | `reason` | Required when `tier != "build"` or `systems` is narrowed. Say *why it cannot be proven further*, not what the tier is. |
 | `welcomeText` | Almost always leave unset. `standardWelcome` in `registry.nix` builds the post-init message from `description`, and one message across eleven templates is the point. Set it only to say something that text cannot. |
@@ -63,7 +64,14 @@ no longer describing itself.
 
 ## Adding a check
 
-Static only — see `.claude/rules/harness.md` for what that excludes. Prefer a
+Static only — see `.claude/rules/harness.md` for what that excludes.
+
+**Never interpolate a per-kind path unguarded.** `${root + "/${n}/flake.nix"}`
+throws at *eval* when the file is absent, and so does `builtins.readFile` on
+it — which takes `nix flake check` and `nix flake show` down for every
+template, while `nix flake init -t` and `nix build .#registry-json` keep
+working. The break lands on a consumer, not on whoever caused it. Iterate
+`flakeNames` / `devenvNames`, or guard with the `exists` helper. Prefer a
 pure-eval assertion over a `runCommand` when the fact is knowable from the
 registry (`reason-required` is one); use `runCommand` over a `lib.fileset` when
 it needs to read template sources, and scope the fileset so a README edit does

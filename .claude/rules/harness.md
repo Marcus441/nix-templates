@@ -34,6 +34,36 @@ only needs to *read* the template's files or the registry, it belongs in
 - **Tiers come from the registry**, via `nix build .#registry-json` and `jq`.
   The script must never hardcode a tier or re-parse Nix — `meta/templates.nix`
   is the single source of truth (CLAUDE.md Inv. 2).
+- **There are two paths, chosen by `kind`.** `nix flake init -t` and the
+  `git init && git add -A` pair are shared; everything after branches:
+
+  | Tier | `kind = "flake"` | `kind = "devenv"` |
+  | --- | --- | --- |
+  | `eval` | `nix flake check --no-build` | `devenv info` |
+  | `shell` | `nix develop --command bash -c` | `devenv shell -- bash -c` |
+  | `build` | `nix build --no-link '.#default'` | `devenv test` |
+
+  The `--` in `devenv shell --` is load-bearing: `-c` is a *global* devenv
+  option (`--clean`), so `devenv shell bash -c "…"` would scrub the environment
+  under test.
+- **Tear down before `rm -rf`, and on interrupt.** `devenv processes down`
+  finds the supervisor through `$work/.devenv`, so deleting the work directory
+  first orphans a daemon with no handle left to stop it. That is why the
+  teardown sits with the devenv steps rather than in the cleanup branch, and
+  why the script now carries a trap it never needed when every template was a
+  flake. `--keep` tears down too: the reproduce line restarts the processes
+  anyway, and a `--keep` in CI would otherwise leak them.
+- **The script resolves `devenv` itself** — `nix run --inputs-from "$REPO"
+  nixpkgs#devenv` when it is not on `PATH`, so CI needs no install step. Not a
+  bare `nixpkgs#devenv`: that resolves the caller's flake registry, which is a
+  fourth nixpkgs spelling. Not the dev shell either — `nix flake check`
+  realises `devShells`, so that would put a 394 MiB closure on the `static`
+  job on every push.
+- **Redirect the XDG dirs, not just `HOME`.** nix falls back to `$HOME/.cache`
+  only when `XDG_CACHE_HOME` is unset, and devenv reads the XDG variables
+  directly. `XDG_CONFIG_HOME` is deliberately *not* redirected: nix reads
+  `$XDG_CONFIG_HOME/nix/nix.conf`, and a developer whose experimental-features
+  live there would lose them mid-run.
 - **`SKIP` is not `PASS`.** A template whose `systems` excludes the current
   system is skipped, and the summary must say so separately. A harness that
   reports green for work it did not do is worse than no harness.
@@ -71,6 +101,17 @@ nixpkgs:
 nix flake check --no-build --override-input nixpkgs github:nixos/nixpkgs/<rev>
 ```
 
+For a devenv template the equivalent is `devenv test -o nixpkgs
+github:nixos/nixpkgs/<rev>`.
+
 Passes with the pin ⇒ upstream drift. The fix still belongs in the template
 (pin it, or adapt to the change) — never in the harness, and never by lowering
 the template's tier.
+
+**One triage case is new, and the usual advice does not apply to it.** A devenv
+template depends on devenv's *modules*, which ship inside the binary rather
+than coming from an input — so `devenv.lock` cannot pin them and overriding
+nixpkgs will not move them. When the failure is inside a devenv module, there
+is no in-template fix and no pin that helps: the options are a shim with a
+documented removal trigger, or waiting for upstream.
+`templates/devenv-postgres/README.md` is the worked example.

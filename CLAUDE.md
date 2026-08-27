@@ -2,9 +2,9 @@
 
 This repository publishes **project templates** consumed by
 `nix flake init -t github:Marcus441/nix-templates#<name>`. Its product is not a
-configuration — it is eleven standalone flakes that other people copy. That one
-fact drives every rule below. If a change would violate an invariant, stop and
-say so.
+configuration — it is twelve standalone projects that other people copy: eleven
+flakes, and one devenv environment. That one fact drives every rule below. If a
+change would violate an invariant, stop and say so.
 
 §7 lists where the repo does **not yet** satisfy its own invariants. Read it
 before treating existing code as an example to copy.
@@ -27,18 +27,30 @@ deliberately not. The reasoning is in §2 — do not "fix" the inconsistency.
    `config.flake.templates` is the output.** One word apart.
 3. **Every template directory is registered; every registry entry has a
    directory.** Checked.
-4. **A template's only input is nixpkgs, and it iterates systems itself** —
-   a four-line `forAllSystems` over `nixpkgs.lib.genAttrs`, with the `systems`
-   list written out and checked against the registry. Never introduce
-   `flake-utils`, flake-parts, import-tree, devenv or snowfall *into a
-   template*. A template must be readable by someone who has never seen this
-   repo. All five are checked; `docs/decisions/no-flake-utils.md`,
-   `docs/decisions/devenv.md`.
+4. **A template declares its `kind`, and the kind decides its shape.**
+   `kind = "flake"` — eleven of the twelve, and the default — means **one input,
+   nixpkgs**, and a four-line `forAllSystems` over `nixpkgs.lib.genAttrs` with
+   the `systems` list written out and checked against the registry. Never
+   introduce `flake-utils`, flake-parts, import-tree, devenv or snowfall *into
+   a flake template*. All five are checked; `docs/decisions/no-flake-utils.md`.
+
+   `kind = "devenv"` means **`devenv.nix` and `devenv.yaml` and no `flake.nix`
+   at all** — native devenv, never the flake integration, which cannot start
+   processes. `devenv.yaml` pins the same nixpkgs spelling and neither file may
+   reach outside the template directory; both checked by `devenv-inputs`.
+   `docs/decisions/devenv-templates.md`.
+
+   Either way a template must be readable by someone who has never seen this
+   repo. Note one asymmetry: a devenv template has no `systems` of its own, so
+   its platform claim is enforced by the CI matrix alone, not by its artifact.
 5. **One nixpkgs spelling:** `github:nixos/nixpkgs/nixos-unstable`. Checked.
-6. **Every template ships `.editorconfig`, `.envrc`, `.gitignore`, `README.md`
-   and a `description`.** The `.gitignore` opens with the four-line Nix block;
-   the README opens with `# <template-name>` and has a `## Building` section;
-   the `description` equals the registry's. All checked.
+6. **Every template ships `.editorconfig`, `.envrc`, `.gitignore` and
+   `README.md`, plus the artifact its kind calls for** — `flake.nix` with a
+   `description` equal to the registry's, or `devenv.nix` and `devenv.yaml`.
+   The `.gitignore` opens with the four-line Nix block and the README opens
+   with `# <template-name>` and has a `## Building` section, both regardless of
+   kind. Shipping the *other* kind's artifact is a failure too: one environment,
+   one definition of it. All checked.
 7. **`meta/` is flake-parts; templates are not.** The two never mix.
 
 ## 2. Mental model
@@ -50,25 +62,44 @@ nixpkgs. It exists to *describe and test* the templates. `flake.templates` is
 `mapAttrs` over `config.templates`; adding a registry entry is what publishes a
 template.
 
-**The templates** are eleven unrelated flakes that happen to live in one git
-repo. They share no code and cannot. They are the artifact.
+**The templates** are twelve unrelated projects that happen to live in one git
+repo — eleven flakes and one devenv environment. They share no code and cannot.
+They are the artifact.
+
+The second kind arrived in `docs/decisions/devenv-templates.md`, and it is the
+"second output class" this section used to name as the trigger for revisiting
+the dendritic pattern. It is not one: a devenv template still maps 1:1 to
+exactly one registry entry, so there is still nothing to merge. What it did
+change is that every check reading a template's *source* must branch on
+`kind` — because a template with no `flake.nix` is an eval error, not a failed
+check, and it takes `nix flake show` down for the whole repo.
 
 flake-parts is used **only** for the registry, and only because `perSystem` is
 what makes a `checks` output practical. The dendritic pattern is not used: it
 solves cross-cutting merge (*many files → one aspect*), and a template maps 1:1
-to exactly one registry entry — there is nothing to merge. Revisit only if
-templates ever contribute a second output class (a NixOS module, a docs page).
+to exactly one registry entry — there is nothing to merge. Revisit only if a
+template ever contributes a genuine second output class (a NixOS module, a docs
+page) — a second *kind* is not that, as above.
 
 ## 3. Tiers
 
 Every registry entry declares how far the harness goes. Tier is a statement
 about what is *provable in CI*, not about template quality.
 
-| Tier | Runs |
-| --- | --- |
-| `eval` | instantiate, then `nix flake check --no-build` |
-| `shell` | the above, then `nix develop --command` each `smoke` command |
-| `build` | the above, then `nix build .#default` (the template's own `doCheck` runs here) |
+Every tier instantiates first, with `nix flake init -t` — for both kinds; it is
+a directory copy and works on a template with no `flake.nix`. What follows
+depends on the kind.
+
+| Tier | `kind = "flake"` | `kind = "devenv"` |
+| --- | --- | --- |
+| `eval` | `nix flake check --no-build` | `devenv info` |
+| `shell` | the above, then `nix develop --command` each `smoke` command | the above, then `devenv shell --` each `smoke` command |
+| `build` | the above, then `nix build .#default` — **sandboxed, no network** (the template's own `doCheck` runs here) | the above, then `devenv test` — starts the declared processes, runs `enterTest`, stops them. **Not sandboxed; has network** |
+
+The two `build` columns are not the same claim, which is why they are written
+out. A green flake `build` says the package builds hermetically; a green devenv
+`build` says the services actually came up and answered. More evidence about
+one thing, less about the other.
 
 **A tier below `build`, or a narrowed `systems`, requires a `reason`.** Checked.
 The reason is the thing a future reader needs: *why* this template cannot be
@@ -92,6 +123,8 @@ meta/
 scripts/test-template.sh  # the real test harness
 .githooks/                # commit-msg, pre-push; core.hooksPath, set by the dev shell
 templates/<name>/         # one directory per template, standalone, self-contained
+                          #   kind=flake:  flake.nix + the four dotfiles
+                          #   kind=devenv: devenv.nix + devenv.yaml + the same four
 docs/decisions/           # why a call was made
 ```
 
@@ -132,9 +165,17 @@ Consequences, both of which bite:
   `nix flake update` is hook-blocked — it would also move the root lock, which
   is tracked.
 
-`.gitignore` ignores `flake.lock` repo-wide and re-includes exactly one: the
-root's, which belongs to this repo's own flake. Locking a template means adding
-a negation line.
+`.gitignore` ignores `flake.lock` and `devenv.lock` repo-wide and re-includes
+exactly one: the root's `flake.lock`, which belongs to this repo's own flake.
+Locking a template means adding a negation line for whichever lock its kind
+uses; `lock-policy` branches on `kind` and checks the right filename.
+
+One thing a devenv template cannot do, and it is worth knowing before relying
+on the policy: **`devenv.lock` pins nixpkgs, not devenv's own modules**, which
+ship inside the binary the consumer installed. So locking a devenv template
+does not protect it from a devenv upgrade, and when a devenv *module* breaks
+there is no in-template fix. `devenv-postgres` ships a documented shim for
+exactly that.
 
 ## 6. Hazards and verification
 
@@ -148,6 +189,19 @@ a negation line.
   commits those paths whatever the index holds. Without one, a nine-file change
   has gone in as thirty-three. Run `git status` first and confirm every
   modified file is yours; if one is not, leave it and say so.
+- **A `devenv` run inside a template directory leaves `.devenv/` behind, and
+  the pre-nix hook will stage it.** `.claude/hooks/git-add-before-nix.sh` does
+  not match a bare `devenv` command, so nothing is staged at that moment — the
+  *next* `nix` command in the session sweeps the whole tree, and `.devenv/`
+  holds a live postgres data directory. The root `.gitignore` covers it; do not
+  remove those lines.
+- **The harness resolves `devenv` itself.** `nix run --inputs-from "$REPO"
+  nixpkgs#devenv` when it is not already on `PATH`, so CI needs no install
+  step. Two reasons it is written that way: a bare `nixpkgs#devenv` would
+  resolve the *caller's* flake registry, which is a fourth nixpkgs spelling
+  arriving through the back door; and `nix flake check` realises `devShells`,
+  so putting devenv in the dev shell would put its 394 MiB closure on the
+  `static` job on every push.
 - **`nix flake check` does not test templates.** It validates *this* flake and
   the shape of the `templates` output. It never evaluates a template's own
   flake. Only `scripts/test-template.sh` does that.
@@ -206,8 +260,11 @@ items are deleted and survivors keep their numbers.
 
 | Anti-pattern | Why |
 | --- | --- |
-| flake-utils / flake-parts / import-tree / devenv / snowfall inside a template | Inv. 4 — a template must read standalone, on one input. Checked |
-| A comment in a template's `flake.nix` | It belongs in that template's README — `.claude/rules/template-flake-conventions.md` |
+| flake-utils / flake-parts / import-tree / devenv / snowfall inside a `kind = "flake"` template | Inv. 4 — a flake template must read standalone, on one input. Checked |
+| A `kind = "devenv"` template that also ships a `flake.nix` — or the reverse | Two definitions of one environment with nothing checking they agree. The hybrid `docs/decisions/devenv.md` rejected; now checked |
+| devenv's *flake integration* (`devenv.lib.mkShell`) in any template | It cannot start processes, and needs `--no-pure-eval` — every cost, none of the benefit. `docs/decisions/devenv-templates.md` |
+| A `shellHook` in a devenv template's `devenv.nix` that only prints a banner | Same rule as a flake's `shellHook`, same reason |
+| A comment in a template's `flake.nix` or `devenv.nix` | It belongs in that template's README — `.claude/rules/template-flake-conventions.md`, `.claude/rules/template-devenv-conventions.md` |
 | A `shellHook` that only prints a banner | A subprocess on every `nix develop` and every direnv reload, for what the README already says |
 | `buildInputs` / `nativeBuildInputs` in a `mkShell`, or a bare `FOO = "…"` env var | One spelling per job: `packages` and `env = {…}` |
 | A `systems` list that disagrees with the registry | Inv. 4 — the template would claim a platform nothing tests |
@@ -266,15 +323,23 @@ items are deleted and survivors keep their numbers.
   `templates/android-kotlin/.github/workflows/ci.yml` to the repo root — it lives inside
   the template *so generated repos inherit it*, and has never run here;
   reintroducing `flake-utils` to shorten the `forAllSystems` helper — the
-  duplication is the design, `docs/decisions/no-flake-utils.md`; devenv in a
-  template or in the registry, including a hybrid `.envrc` —
-  `docs/decisions/devenv.md`; pinning `android-kotlin`'s Android SDK with
+  duplication is the design, `docs/decisions/no-flake-utils.md`; a **hybrid
+  `.envrc`** (`use devenv` with a `use flake` fallback), devenv's **flake
+  integration** in any template, and devenv inside a `kind = "flake"` template
+  — all three still rejected, `docs/decisions/devenv.md` and
+  `docs/decisions/devenv-templates.md`, and the first two are now checked;
+  a **second `devenv-templates` repository**, which would mean maintaining two
+  harnesses so that one enum could stay an enum of one; pinning
+  `android-kotlin`'s Android SDK with
   `androidenv`, or shipping a sample app it could generate —
   `android create` needs a *writable* SDK and refuses a non-empty directory,
   `docs/decisions/android-cli.md`; reinstating `ts-node-rest-api`, or any
   template whose only difference from an existing one is its dependencies and
-  file layout, and a services or full-stack template *in this repo* — the
-  harness has no service lifecycle to prove one with,
-  `docs/decisions/environment-not-project.md`.
+  file layout. A services or full-stack template *in this repo* is no longer on
+  this list: `devenv test` gave the harness the service lifecycle it lacked, and
+  `docs/decisions/devenv-templates.md` records the decision. What survives from
+  `docs/decisions/environment-not-project.md` is the rule that outlived it — a
+  template ships an environment, not a project — and it binds a devenv template
+  exactly as it binds a flake one.
 - **If a request genuinely doesn't fit,** say so and give options with their
   costs. Do not silently bend an invariant.
