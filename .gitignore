@@ -9,6 +9,20 @@
 flake.lock
 !/flake.lock
 
+# devenv writes these into whatever directory it runs in, including a template
+# directory a maintainer is debugging. .claude/hooks/git-add-before-nix.sh does
+# not match a bare `devenv` command, so nothing is staged at that moment — but
+# the next nix command in the session stages the whole working tree, and
+# .devenv/ holds a live postgres data directory. The test-template skill tells
+# you to go poke at a failing copy, so this is not hypothetical.
+#
+# devenv.lock is the devenv-kind analogue of flake.lock above: ignored by
+# default, re-included per template with `!/templates/<name>/devenv.lock` when
+# `locked = true` — CLAUDE.md 5.
+devenv.lock
+.devenv/
+.devenv.flake.nix
+
 result
 result-*
 .direnv/
