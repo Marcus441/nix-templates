@@ -1,0 +1,36 @@
+# Nix
+result
+result-*
+.direnv/
+
+# devenv
+.devenv*
+devenv.local.nix
+
+# .NET build output
+bin/
+obj/
+[Dd]ebug/
+[Rr]elease/
+*.user
+*.suo
+
+# NuGet
+*.nupkg
+packages/
+.nuget/
+
+# Node
+node_modules/
+dist/
+
+# Editors / OS
+.vscode/
+.idea/
+.vs/
+*.swp
+*.swo
+.DS_Store
+
+.env
+*.log

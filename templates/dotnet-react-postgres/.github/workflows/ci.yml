@@ -1,0 +1,36 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  # One job, where a flake template needs two. `devenv test` builds the
+  # environment *and* starts the services, waits for their readiness probes,
+  # runs enterTest against them and stops them again — so the thing a sandboxed
+  # `nix build` cannot cover is the thing this covers.
+  devenv:
+    name: devenv test (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: DeterminateSystems/nix-installer-action@main
+      # devenv's own public cache. No secret, so this still works on fork PRs;
+      # without it the runner builds devenv's closure from source.
+      - uses: cachix/cachix-action@v16
+        with:
+          name: devenv
+      - run: nix profile install nixpkgs#devenv
+      # `dotnet run` restores from nuget.org on first use. devenv test is not a
+      # build sandbox, so it has the network for that — which is also why this
+      # job is slower than a flake template's.
+      - run: devenv test
