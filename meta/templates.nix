@@ -55,6 +55,13 @@
       smoke = ["make --version" "clangd --version" "cpplint --version"];
     };
 
+    devenv-postgres = {
+      description = "devenv environment with a local PostgreSQL service";
+      kind = "devenv";
+      tier = "build";
+      smoke = ["psql --version" "pg_isready --version"];
+    };
+
     dotnet = {
       description = "Dev environment for .NET, with F# tooling";
       tier = "shell";
