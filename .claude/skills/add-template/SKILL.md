@@ -80,8 +80,9 @@ not "eval only".
 Default `locked = false`; the template resolves current nixpkgs on first use.
 
 For `kind = "devenv"` the lock is `devenv.lock` and the negation line matches
-it. Be aware it buys less: it pins nixpkgs but **not** devenv's own modules,
-which ship inside the consumer's `devenv` binary.
+it. It buys more than a `flake.lock` does, not less: devenv adds itself as a
+second input, so the lock pins the *service modules* too. Unlocked, those float
+— `devenv-postgres` broke overnight that way.
 
 Set `locked = true` only when resolution is slow or fragile. No template meets
 that bar today, so a new one almost certainly does not either — and being the

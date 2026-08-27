@@ -54,17 +54,6 @@ reads it back — so a pass means the service genuinely started, not merely that
 
 ## Notes
 
-- **The `options.processes` block at the top of `devenv.nix` is a shim, and it
-  should be deleted once devenv no longer needs it.** devenv's own
-  `services/postgres.nix` sets `processes.postgres.shutdown.signal`, but its
-  `processes.nix` does not declare a `shutdown` option — so
-  `services.postgres.enable = true` fails to evaluate on its own. Confirmed in
-  devenv 2.2.1 and 2.2.2; `services.mysql` has the same problem, and the other
-  41 service modules do not. The block declares that option, copied verbatim
-  from the declaration devenv already carries in `tasks.nix`, so that when
-  upstream adds it to `processes.nix` the two declarations merge instead of
-  colliding. **Removal trigger:** delete the block, run `devenv test`, and if it
-  passes, devenv has fixed it.
 - **Why there is no `flake.nix`.** devenv's flake integration cannot start
   processes — its own documentation says so — and it needs
   `nix develop --no-pure-eval`. Since supervised services are the entire reason
@@ -82,11 +71,14 @@ reads it back — so a pass means the service genuinely started, not merely that
   devenv defaults to its own fork; this template follows the same nixpkgs as
   every other template here. The shim above is not caused by that choice — it
   reproduces identically under devenv's own default nixpkgs.
-- **`devenv.lock` cannot pin the thing most likely to break this template.** It
-  pins nixpkgs; devenv's service modules ship inside the `devenv` binary you
-  installed, so they move when you upgrade devenv and there is nothing here
-  that can hold them still. That is the trade against a `flake.lock`, which
-  pins everything a flake template depends on.
+- **Unlocked means devenv's own modules float, not just nixpkgs.** `devenv.yaml`
+  declares one input, but devenv adds itself as a second, and `devenv.lock`
+  pins both. Until you write that lock, `services.postgres` is whatever
+  `cachix/devenv` looks like today — so this template can change behaviour
+  with no edit to it and no edit upstream that you asked for. It happened
+  during development: a `devenv test` that passed one day failed the next
+  because the module set had moved. `devenv update` writes the lock and stops
+  it; do that early rather than after it surprises you.
 - **`devenv.lock` is not shipped; `devenv update` writes one and you commit
   it.** A lock in the template would be a lock over somebody else's empty input
   set. Yours pins your project and nothing here moves it afterwards.
