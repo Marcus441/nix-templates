@@ -72,7 +72,7 @@ the dendritic pattern. It is not one: a devenv template still maps 1:1 to
 exactly one registry entry, so there is still nothing to merge. What it did
 change is that every check reading a template's *source* must branch on
 `kind` — because a template with no `flake.nix` is an eval error, not a failed
-check, and it takes `nix flake show` down for the whole repo.
+check, and it takes `nix flake check` down for the whole repo.
 
 flake-parts is used **only** for the registry, and only because `perSystem` is
 what makes a `checks` output practical. The dendritic pattern is not used: it
@@ -141,7 +141,7 @@ one is not an improvement at six files.
 
 | Locked (committed `flake.lock`) | Unlocked |
 | --- | --- |
-| — none today | all eleven |
+| — none today | all fourteen |
 
 Unlocked so consumers get current nixpkgs on first use. The bar for locking is
 resolution being slow or fragile, and **nothing meets it right now** —
@@ -198,9 +198,9 @@ fragile" bar.
   *next* `nix` command in the session sweeps the whole tree, and `.devenv/`
   holds a live postgres data directory. The root `.gitignore` covers it; do not
   remove those lines.
-- **The harness resolves `devenv` itself.** `nix run --inputs-from "$REPO"
-  nixpkgs#devenv` when it is not already on `PATH`, so CI needs no install
-  step. Two reasons it is written that way: a bare `nixpkgs#devenv` would
+- **The harness resolves `devenv` itself.** `nix build --print-out-paths
+  --inputs-from "$REPO" nixpkgs#devenv`, once per run, when it is not already on
+  `PATH`, so CI needs no install step. Two reasons it is written that way: a bare `nixpkgs#devenv` would
   resolve the *caller's* flake registry, which is a fourth nixpkgs spelling
   arriving through the back door; and `nix flake check` realises `devShells`,
   so putting devenv in the dev shell would put its 394 MiB closure on the
@@ -219,9 +219,10 @@ fragile" bar.
   github:Marcus441/nix-templates#shell` now pulls flake-parts and nixpkgs before
   printing anything. Accepted knowingly — `docs/decisions/flake-parts-at-root.md`
   — so do not "optimise" it away by moving the registry into a second flake.
-- **`templates/android-kotlin/.github/workflows/ci.yml` is payload,** shipped inside the
-  template so generated repos inherit it. GitHub runs only root workflows, so it
-  has never run here. Do not consolidate it. `.claude/rules/ci.md`.
+- **Every `templates/*/.github/workflows/ci.yml` is payload,** shipped inside a
+  template so generated repos inherit it. GitHub runs only root workflows, so
+  none of them has ever run here. Do not consolidate them.
+  `.claude/rules/ci.md`.
 - **A broad `treefmt` exclusion hides a template from the formatter.**
   `android-kotlin/**` was once excluded alongside `**/gradlew*` and
   `**/gradle/**`, which already kept shfmt off the vendored Gradle wrapper — so
@@ -331,9 +332,9 @@ items are deleted and survivors keep their numbers.
   `kind` rather than a banned framework, but adding a *second* class is the
   same kind of decision and wants the same conversation first.
 - **Do not re-propose:** the dendritic pattern for this repo (§2); a shared
-  library for templates (Inv. 1 makes it impossible); moving
-  `templates/android-kotlin/.github/workflows/ci.yml` to the repo root — it lives inside
-  the template *so generated repos inherit it*, and has never run here;
+  library for templates (Inv. 1 makes it impossible); moving any
+  `templates/*/.github/workflows/ci.yml` to the repo root — they live inside
+  their templates *so generated repos inherit them*, and have never run here;
   reintroducing `flake-utils` to shorten the `forAllSystems` helper — the
   duplication is the design, `docs/decisions/no-flake-utils.md`; a **hybrid
   `.envrc`** (`use devenv` with a `use flake` fallback), devenv's **flake

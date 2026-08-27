@@ -62,8 +62,9 @@ inherited.
   stopped pinning LLVM 18 for the same reason — a pinned major eventually
   leaves nixpkgs.
 - **`unfree` goes in `devenv.yaml`, not the registry.** The registry's `unfree`
-  flag adds `--impure` to a `nix` command; the harness refuses it outright for
-  this kind rather than dropping it silently.
+  flag adds `--impure` to a `nix` command, which the devenv path never runs.
+  `checks.unfree-is-flake-only` rejects it in seconds at `nix flake check`,
+  rather than the harness discovering it partway through a run.
 - **A shim for an upstream devenv bug is a liability with a short fuse.**
   `devenv-postgres` carried one for a day: devenv's `services/postgres.nix` set
   `processes.postgres.shutdown`, its `processes.nix` did not declare it, so the

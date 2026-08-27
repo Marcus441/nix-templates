@@ -6,10 +6,11 @@ paths: ".github/workflows/*"
 
 Three things nothing else in the repo says.
 
-## `templates/android-kotlin/.github/workflows/ci.yml` is not this repo's CI
+## `templates/*/.github/workflows/ci.yml` is not this repo's CI
 
-It is **payload**. It ships inside the template so that projects generated from
-it inherit a working Android pipeline. GitHub only runs workflows found at the
+Seven of them are **payload**. They ship inside a template so that projects
+generated from it inherit a working pipeline — `android-kotlin` an Android one,
+`dotnet-react-postgres` a `devenv test` one, the rest a `nix build` one. GitHub only runs workflows found at the
 repository root, so it has never executed here and never will. Moving it to the
 root would break every generated project and test nothing. Commit `11d22e0`
 moved it *into* the template deliberately.
@@ -25,9 +26,11 @@ from the `checks` output, and this repo's checks are static and say nothing
 about whether a template works. The `tier` decides *which commands run*, not
 just which attribute to build, so the matrix has to carry it.
 
-The matrix carries `kind` alongside `name` and `tier`. Nothing branches on it
-today — the harness resolves devenv itself rather than needing an install step
-— but it is what the cache key and any future per-kind step read.
+The matrix carries `kind` alongside `name` and `tier`. **Nothing reads it
+today** — the harness resolves devenv itself rather than needing an install
+step, and the cache key below hashes both kinds' files unconditionally rather
+than branching. It is carried so a per-kind step does not have to re-plumb the
+matrix, and so a red leg names its kind. Do not go looking for the consumer.
 
 The matrix has two dimensions: template × runner. Every entry in a template's
 `systems` produces a leg, so a system a template claims is a system something

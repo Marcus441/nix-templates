@@ -50,8 +50,10 @@ It is also a weaker one in a different direction — it is not sandboxed and has
 network, so it says nothing about hermeticity.
 
 Tiers (CLAUDE.md §3): `eval` instantiates and evaluates; `shell` also opens the
-dev shell and runs each `smoke` command; `build` also runs `nix build .#default`,
-which is where the template's own `ctest` / `cargo test` runs.
+shell and runs each `smoke` command; `build` also runs the last row of the table
+above — `nix build .#default` for a flake, where the template's own `ctest` /
+`cargo test` runs, or `devenv test` for a devenv template, where `enterTest`
+runs against started services.
 
 So a `PASS` at `eval` proves only that the flake evaluates, and nothing proves
 the shell works. No template sits at `eval` today, so any new one that does owes

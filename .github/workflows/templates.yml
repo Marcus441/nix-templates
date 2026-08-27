@@ -89,7 +89,7 @@ jobs:
     needs: registry
     runs-on: ${{ matrix.os }}
     strategy:
-      # One drifting template must not hide the state of the other ten.
+      # One drifting template must not hide the state of the other thirteen.
       fail-fast: false
       matrix:
         include: ${{ fromJSON(needs.registry.outputs.matrix) }}
