@@ -34,6 +34,48 @@
     # `packages` cannot trip it.
     bannedFrameworks = ["flake-utils" "flake-parts" "import-tree" "devenv" "snowfall"];
 
+    # CLAUDE.md 1.4. A "flake" template ships flake.nix on one nixpkgs input; a
+    # "devenv" template ships devenv.nix and devenv.yaml and no flake.nix at
+    # all. Every check below that reads a template's *source* has to know which,
+    # because interpolating a path that does not exist throws at eval — it would
+    # take `nix flake show` down for every template, and only a consumer would
+    # notice, since `nix flake init -t` and `nix build .#registry-json` keep
+    # working.
+    kindOf = n: templates.${n}.kind;
+    flakeNames = lib.filter (n: kindOf n == "flake") names;
+    devenvNames = lib.filter (n: kindOf n == "devenv") names;
+    exists = n: f: builtins.pathExists (root + "/${n}/${f}");
+
+    # The nixpkgs pin as devenv.yaml spells it. Whole lines, like systemsLine,
+    # so the formatting is pinned along with the value. devenv's own default is
+    # github:cachix/devenv-nixpkgs/rolling, so this is load-bearing rather than
+    # decorative — Inv. 5 is the reason, and docs/decisions/devenv-templates.md
+    # records what to do if a devenv module ever needs that fork.
+    devenvNixpkgsLines = [
+      "  nixpkgs:"
+      "    url: github:nixos/nixpkgs/nixos-unstable"
+    ];
+
+    # Inv. 6, per kind. The four dotfiles are common to both; the artifact is
+    # not.
+    requiredFiles = n:
+      [".editorconfig" ".envrc" ".gitignore" "README.md"]
+      ++ (
+        if kindOf n == "devenv"
+        then ["devenv.nix" "devenv.yaml"]
+        else ["flake.nix"]
+      );
+
+    # The other shape's artifacts, which must be absent. This is what keeps
+    # docs/decisions/devenv.md's rejection of a hybrid alive after the
+    # reversal: one environment, one definition of it. Without this, the first
+    # person to add a flake.nix "for compatibility" reinstates the two
+    # definitions with nothing checking that they agree.
+    forbiddenFiles = n:
+      if kindOf n == "devenv"
+      then ["flake.nix" "flake.lock"]
+      else ["devenv.nix" "devenv.yaml" "devenv.lock"];
+
     # Everything under templates/ is a template. Nothing else lives there, which
     # is why this needs no denylist of repository machinery.
     dirs =
@@ -140,20 +182,27 @@
         lib.concatMap (
           n: let
             t = templates.${n};
-            shipped = builtins.pathExists (root + "/${n}/flake.lock");
+            lockFile =
+              if t.kind == "devenv"
+              then "devenv.lock"
+              else "flake.lock";
+            shipped = exists n lockFile;
           in
             if t.locked && !shipped
-            then ["'${n}' is locked=true but ships no flake.lock — is it still gitignored?"]
+            then ["'${n}' is locked=true but ships no ${lockFile} — is it still gitignored?"]
             else if !t.locked && shipped
-            then ["'${n}' is locked=false but ships a flake.lock"]
+            then ["'${n}' is locked=false but ships a ${lockFile}"]
             else []
         )
         names
       );
 
-      # Inv. 4 and Inv. 5. One URL spelling, no framework, and a `systems` list
-      # that says the same thing the registry does — a template that claims a
-      # system the registry excludes is untested by construction.
+      # Inv. 4 and Inv. 5, for kind = "flake". One URL spelling, no framework,
+      # and a `systems` list that says the same thing the registry does — a
+      # template that claims a system the registry excludes is untested by
+      # construction. The devenv shape has no flake.nix and no `systems` of its
+      # own; `devenv-inputs` covers what it can, and CLAUDE.md 1.4 records the
+      # asymmetry that remains.
       flake-inputs = pkgs.runCommand "check-flake-inputs" {} ''
         # Single-quoted: canonicalUrl contains double quotes of its own.
         expected='${canonicalUrl}'
@@ -176,7 +225,7 @@
               fail=1
             fi
           '')
-          names}
+          flakeNames}
         if [ $fail -ne 0 ]; then
           echo "flake-inputs: see .claude/rules/template-flake-conventions.md" >&2
           exit 1
@@ -186,6 +235,8 @@
 
       # `nix flake init -t` prints the registry's description and the consumer
       # then reads the flake's. Two sentences for one template is one too many.
+      # kind = "devenv" has nowhere to put a second one, which is why
+      # `description-unique` reads the registry rather than the artifact.
       description-agrees = decided "description-agrees" (
         lib.concatMap (
           n: let
@@ -195,8 +246,51 @@
             lib.optional (inFlake != null && inFlake != inRegistry)
             "'${n}': flake says \"${inFlake}\", registry says \"${inRegistry}\""
         )
-        names
+        flakeNames
       );
+
+      # Inv. 5 and Inv. 1 for the shape that has no flake.nix, so `flake-inputs`
+      # cannot speak for it. devenv.yaml's own default nixpkgs is
+      # github:cachix/devenv-nixpkgs/rolling, which means the pin has to be
+      # written out rather than inherited.
+      #
+      # Both files are searched for `../`, not just the yaml: a devenv template
+      # has one more way out of its own directory than a flake does, and it is
+      # `imports = [ ../shared.nix ];` in devenv.nix. A `path:` input is not
+      # banned — `path:./sub` is inside the directory and legitimate.
+      devenv-inputs = pkgs.runCommand "check-devenv-inputs" {} ''
+        fail=0
+        ${lib.concatMapStringsSep "\n" (n:
+          lib.optionalString (exists n "devenv.yaml") (
+            lib.concatMapStringsSep "\n" (l: ''
+              if ! grep -qxF ${lib.escapeShellArg l} ${root + "/${n}/devenv.yaml"}; then
+                echo "  ${n}: devenv.yaml does not carry the line: ${l}" >&2
+                fail=1
+              fi
+            '')
+            devenvNixpkgsLines
+          )
+          + lib.concatMapStringsSep "\n" (f:
+            lib.optionalString (exists n f) ''
+              if grep -qE '\.\./' ${root + "/${n}/${f}"}; then
+                echo "  ${n}: ${f} references ../ — the copy would dangle (Inv. 1)" >&2
+                fail=1
+              fi
+            '')
+          ["devenv.yaml" "devenv.nix"]
+          + lib.optionalString (exists n "devenv.yaml") ''
+            if grep -qE '^[[:space:]]*-[[:space:]]*/' ${root + "/${n}/devenv.yaml"}; then
+              echo "  ${n}: devenv.yaml has an absolute-path list entry (Inv. 1)" >&2
+              fail=1
+            fi
+          '')
+        devenvNames}
+        if [ $fail -ne 0 ]; then
+          echo "devenv-inputs: see .claude/rules/template-devenv-conventions.md" >&2
+          exit 1
+        fi
+        touch "$out"
+      '';
 
       # Without the ellipsis, adding any input is a breaking change for every
       # project generated from the template.
@@ -208,7 +302,7 @@
               fail=1
             fi
           '')
-          names}
+          flakeNames}
         if [ $fail -ne 0 ]; then
           echo "outputs-ellipsis: see .claude/rules/template-flake-conventions.md" >&2
           exit 1
@@ -216,23 +310,35 @@
         touch "$out"
       '';
 
-      # Inv. 6. Enforcing: every template ships the same five things, so a
-      # consumer never has to wonder whether this one happens to have a README.
+      # Inv. 6. Every template ships the same four dotfiles plus the artifact
+      # its kind calls for, so a consumer never has to wonder whether this one
+      # happens to have a README. The forbidden list is the other half: a
+      # devenv template that also shipped a flake.nix would be two definitions
+      # of one environment with nothing checking that they agree, which is the
+      # hybrid docs/decisions/devenv.md rejected on its own merits.
       template-hygiene = pkgs.runCommand "check-template-hygiene" {} ''
         # Single-quoted so nothing in it is expanded; compared against head -4.
         expected_nix_block='${nixGitignoreBlock}'
         missing=0
         ${lib.concatMapStringsSep "\n" (n: ''
-            for f in .editorconfig .envrc .gitignore README.md; do
+            for f in ${lib.escapeShellArgs (requiredFiles n)}; do
               if [ ! -e ${root + "/${n}"}/"$f" ]; then
                 echo "  ${n}: missing $f" >&2
                 missing=$((missing + 1))
               fi
             done
-            if ! grep -q '^  description = ' ${root + "/${n}/flake.nix"}; then
-              echo "  ${n}: flake.nix has no description" >&2
-              missing=$((missing + 1))
-            fi
+            for f in ${lib.escapeShellArgs (forbiddenFiles n)}; do
+              if [ -e ${root + "/${n}"}/"$f" ]; then
+                echo "  ${n}: kind=\"${kindOf n}\" but ships $f" >&2
+                missing=$((missing + 1))
+              fi
+            done
+            ${lib.optionalString (kindOf n == "flake" && exists n "flake.nix") ''
+              if ! grep -q '^  description = ' ${root + "/${n}/flake.nix"}; then
+                echo "  ${n}: flake.nix has no description" >&2
+                missing=$((missing + 1))
+              fi
+            ''}
             if [ "$(head -n 4 ${root + "/${n}"}/.gitignore)" != "$expected_nix_block" ]; then
               echo "  ${n}: .gitignore does not open with the Nix block" >&2
               missing=$((missing + 1))
