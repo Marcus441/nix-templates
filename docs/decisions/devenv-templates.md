@@ -16,8 +16,9 @@ services template because "Proving such a template needs up / health-wait / run
 `nix develop --command` so nothing survives between them, the `build` sandbox
 has no network, and there was no teardown. `devenv test` is exactly that
 missing lifecycle — it builds the environment, starts the declared processes,
-runs `enterTest`, and stops them — with readiness probes and
-`devenv processes wait`. The thing that could not be proven can now be proven.
+runs `enterTest`, and stops them. A process carrying a readiness probe is not
+complete until it is ready, so the probes genuinely gate the test rather than
+merely existing. The thing that could not be proven can now be proven.
 
 **devenv's flake integration is useless for this, which settles the shape.**
 `devenv.lib.mkShell` in a `flake.nix` needs `nix develop --no-pure-eval`, and
@@ -71,12 +72,14 @@ things it did not anticipate:
 
 - A template with no `flake.nix` is an **eval error**, not a failed check.
   `descriptionOf` read the file and three checks interpolated its path, and both
-  throw. The blast radius is asymmetric in the worst direction: `nix flake init
-  -t` and `nix build .#registry-json` keep working, so the harness stays green
-  while `nix flake show` — what a consumer runs to discover templates — is dead.
-  That is why the checks were made total before anything used them.
-- The harness resolves devenv itself, via `nix run --inputs-from`, rather than
-  requiring it on `PATH` with a CI install step. That keeps Inv. 5's single
+  throw. It takes `nix flake check` down for every template, not just the one at
+  fault — while `nix flake show`, `nix flake init -t` and
+  `nix build .#registry-json` all keep working, because none of them forces a
+  check's derivation. So the failure is loud where it should be, but it is
+  whole-repo rather than local, and the checks were made total before anything
+  used them.
+- The harness resolves devenv itself, via `nix build --inputs-from` once per
+  run, rather than requiring it on `PATH` with a CI install step. That keeps Inv. 5's single
   nixpkgs spelling (a bare `nixpkgs#devenv` would take the runner's own flake
   registry), pins the version to the root lock, and keeps devenv's 394 MiB
   closure off the `static` job — `nix flake check` realises `devShells`, so

@@ -53,8 +53,11 @@ only needs to *read* the template's files or the registry, it belongs in
   why the script now carries a trap it never needed when every template was a
   flake. `--keep` tears down too: the reproduce line restarts the processes
   anyway, and a `--keep` in CI would otherwise leak them.
-- **The script resolves `devenv` itself** — `nix run --inputs-from "$REPO"
-  nixpkgs#devenv` when it is not on `PATH`, so CI needs no install step. Not a
+- **The script resolves `devenv` itself** — `nix build --no-link
+  --print-out-paths --inputs-from "$REPO" nixpkgs#devenv`, once per run, when it
+  is not on `PATH`, so CI needs no install step. Once, because every step runs
+  in a `( cd … )` subshell and a lazy resolve inside the wrapper would be
+  discarded each time. Not a
   bare `nixpkgs#devenv`: that resolves the caller's flake registry, which is a
   fourth nixpkgs spelling. Not the dev shell either — `nix flake check`
   realises `devShells`, so that would put a 394 MiB closure on the `static`
