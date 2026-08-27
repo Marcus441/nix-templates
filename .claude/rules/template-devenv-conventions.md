@@ -75,6 +75,10 @@ inherited.
   removal trigger in the README written as something a reader can run: delete
   the block, run `devenv test`, and if it passes the shim is obsolete.
 
+  **Do not report it upstream.** Not an issue, not a pull request, not a draft
+  offered for review — CLAUDE.md §9. A shim plus a removal trigger is the whole
+  response.
+
 ## What a devenv template cannot do
 
 **Unlocked, it floats on an input it never declares.** `devenv.yaml` names
