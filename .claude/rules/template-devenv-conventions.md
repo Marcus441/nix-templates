@@ -64,21 +64,26 @@ inherited.
 - **`unfree` goes in `devenv.yaml`, not the registry.** The registry's `unfree`
   flag adds `--impure` to a `nix` command; the harness refuses it outright for
   this kind rather than dropping it silently.
-- **A shim for an upstream devenv bug needs a removal trigger in the README.**
-  `devenv-postgres` is the worked example: devenv's own `services/postgres.nix`
-  sets an option its `processes.nix` does not declare, so the template declares
-  it — copied verbatim from devenv's own declaration in `tasks.nix`, so the two
-  merge rather than collide when upstream adds it. Write the trigger as
-  something a reader can *run*: delete the block, run `devenv test`, and if it
-  passes the shim is obsolete.
+- **A shim for an upstream devenv bug is a liability with a short fuse.**
+  `devenv-postgres` carried one for a day: devenv's `services/postgres.nix` set
+  `processes.postgres.shutdown`, its `processes.nix` did not declare it, so the
+  template declared it instead. The reasoning was that a declaration copied
+  verbatim from devenv's own would *merge* when upstream added theirs. **It does
+  not merge — the module system raises "is already declared in", and the shim
+  broke the template the moment upstream fixed the bug.** Assume a shim will
+  collide rather than merge, keep it to the smallest thing that works, and put a
+  removal trigger in the README written as something a reader can run: delete
+  the block, run `devenv test`, and if it passes the shim is obsolete.
 
 ## What a devenv template cannot do
 
-**It cannot pin the thing most likely to break it.** `devenv.lock` pins
-nixpkgs; devenv's service modules ship inside the binary the consumer
-installed. When a devenv module breaks there is no in-template fix — which is
-not true of any flake template, where `flake.lock` can pin everything. Say so
-in the README rather than leaving it to be discovered.
+**Unlocked, it floats on an input it never declares.** `devenv.yaml` names
+nixpkgs; devenv adds itself as a second input and `devenv.lock` pins both. So
+an unlocked devenv template tracks `cachix/devenv` and its *service modules*
+move under it — a wider drift surface than any flake template has, and one the
+artifact does not mention. `devenv-postgres` broke this way overnight during
+development. Say so in the README, and reach for `devenv update` earlier than
+you would reach for `nix flake lock`.
 
 **It has no `systems` of its own.** A flake template states its platform claim
 in the artifact and `flake-inputs` greps for it. Here the claim lives only in

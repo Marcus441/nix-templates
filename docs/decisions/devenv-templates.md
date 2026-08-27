@@ -46,12 +46,22 @@ Three smaller costs, all real:
   flake states its platform claim in the thing the consumer copies. devenv has
   no `systems` concept, so for this kind the claim is enforced only by the CI
   matrix.
-- **A devenv template cannot pin the thing most likely to break it.**
-  `devenv.lock` pins nixpkgs; devenv's service modules ship inside the binary
-  the consumer installed. A flake template's `flake.lock` can pin everything it
-  depends on. This one cannot, and the failure mode is new: when a devenv
-  *module* breaks, the fix is not in the template and cannot be. `devenv-postgres`
-  shipped carrying a shim for exactly that, on its first day.
+- **An unlocked devenv template floats on two inputs, and only one of them is
+  visible.** `devenv.yaml` declares nixpkgs; devenv adds *itself* as a second
+  input, and `devenv.lock` pins both. So an unlocked devenv template tracks
+  `cachix/devenv` — which means its *service modules* move under it, not just
+  its packages. This is a wider drift surface than any flake template has, and
+  it is invisible in the artifact: nothing in `devenv.yaml` mentions the input
+  that carries the modules.
+
+  It bit immediately. `devenv-postgres` was written against a `cachix/devenv`
+  revision whose `services/postgres.nix` set `processes.postgres.shutdown`
+  while its own `processes.nix` did not declare it, so the template shipped
+  with a shim declaring the missing option. The input re-resolved within a day
+  to a revision that declares it, and the shim became a duplicate-declaration
+  error — the template broke, in the working tree, with no commit on either
+  side. The shim is gone and the episode is the argument for §5's `locked`
+  flag finally having a candidate.
 
 **Also: the machinery, and why it was not as much as feared.** `devenv.md`
 priced first-class support at "a `kind` field; `flake-inputs`, `lock-policy` and

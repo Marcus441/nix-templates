@@ -108,10 +108,17 @@ Passes with the pin ⇒ upstream drift. The fix still belongs in the template
 (pin it, or adapt to the change) — never in the harness, and never by lowering
 the template's tier.
 
-**One triage case is new, and the usual advice does not apply to it.** A devenv
-template depends on devenv's *modules*, which ship inside the binary rather
-than coming from an input — so `devenv.lock` cannot pin them and overriding
-nixpkgs will not move them. When the failure is inside a devenv module, there
-is no in-template fix and no pin that helps: the options are a shim with a
-documented removal trigger, or waiting for upstream.
-`templates/devenv-postgres/README.md` is the worked example.
+**One triage case is new: the drift may not be nixpkgs.** A devenv template
+floats on a second input it never declares — devenv adds `cachix/devenv` to
+every project, and that is where the *service modules* come from. So a red
+devenv leg can be a module change rather than a package change, and pinning
+nixpkgs alone will not reproduce or exclude it. Override both:
+
+```bash
+devenv test -o nixpkgs github:nixos/nixpkgs/<rev> -o devenv github:cachix/devenv/<rev>
+```
+
+The revisions a working run used are in that project's `devenv.lock`, which is
+the only place either is recorded. This is not hypothetical:
+`devenv-postgres` went from passing to failing overnight on a `cachix/devenv`
+re-resolve, with no commit in this repository.

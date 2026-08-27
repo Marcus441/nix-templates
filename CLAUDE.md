@@ -170,12 +170,15 @@ exactly one: the root's `flake.lock`, which belongs to this repo's own flake.
 Locking a template means adding a negation line for whichever lock its kind
 uses; `lock-policy` branches on `kind` and checks the right filename.
 
-One thing a devenv template cannot do, and it is worth knowing before relying
-on the policy: **`devenv.lock` pins nixpkgs, not devenv's own modules**, which
-ship inside the binary the consumer installed. So locking a devenv template
-does not protect it from a devenv upgrade, and when a devenv *module* breaks
-there is no in-template fix. `devenv-postgres` ships a documented shim for
-exactly that.
+**A devenv template has a wider drift surface than a flake one, and the
+artifact does not show it.** `devenv.yaml` declares nixpkgs; devenv adds itself
+as a second input, and `devenv.lock` pins both. Unlocked, the template
+therefore tracks `cachix/devenv` — so its *service modules* move, not just its
+packages, and nothing in the template mentions the input responsible.
+`devenv-postgres` broke exactly this way during development, between one day
+and the next, with no commit on either side. That makes a devenv template the
+first real candidate for `locked = true` under this section's "slow or
+fragile" bar.
 
 ## 6. Hazards and verification
 

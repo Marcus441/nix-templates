@@ -17,13 +17,19 @@ Two lock formats now. `kind = "flake"` templates use `flake.lock`, written by
 `devenv update`. `lock-policy` branches on `kind` and checks the matching
 filename, and `.gitignore` ignores both repo-wide.
 
-**A `devenv.lock` protects less than a `flake.lock`, and this is the thing to
-know before reaching for one.** It pins nixpkgs, but devenv's own service
-modules ship inside the `devenv` binary the consumer installed — so locking a
-devenv template does not hold them still, and when one of them breaks there is
-no pin that helps and no in-template fix. See
-`templates/devenv-postgres/README.md` for how that was handled the first time
-it happened.
+**A `devenv.lock` covers more than the template appears to depend on, and that
+is the thing to know before leaving one unlocked.** `devenv.yaml` declares
+nixpkgs; devenv adds *itself* as a second input, and the lock pins both. So an
+unlocked devenv template tracks `cachix/devenv` and its service modules move
+under it — a drift surface no flake template has, and one nothing in the
+artifact mentions.
+
+**This is the first thing in the repo's history with a real claim on
+`locked = true`.** `devenv-postgres` went from passing to failing overnight on
+a `cachix/devenv` re-resolve, with no commit on either side. §5's bar is
+"resolution being slow or fragile"; that is fragile. It has not been locked
+yet — the weekly cron is currently what stands in for it — but a second such
+episode is the moment to stop arguing.
 
 The only tracked lock in the repository is the root's, which belongs to this
 repo's own flake and reaches no consumer. Bare `nix flake update` is
