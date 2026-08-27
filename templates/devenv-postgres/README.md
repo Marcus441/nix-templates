@@ -54,6 +54,12 @@ reads it back — so a pass means the service genuinely started, not merely that
 
 ## Notes
 
+- **`enterTest` drops its table before creating it, and that matters.**
+  `devenv test` keeps state in `.devenv/test-state` on purpose, so the eval
+  cache stays warm — which means the database survives between runs and a
+  create-then-insert would fail the *second* time you run it. The harness never
+  sees this, because it instantiates into a fresh directory every time; you
+  would. Anything you put in `enterTest` has to be re-runnable.
 - **Why there is no `flake.nix`.** devenv's flake integration cannot start
   processes — its own documentation says so — and it needs
   `nix develop --no-pure-eval`. Since supervised services are the entire reason
@@ -69,8 +75,7 @@ reads it back — so a pass means the service genuinely started, not merely that
   the right answer for this template.
 - **nixpkgs is pinned to `nixos-unstable`, not `devenv-nixpkgs/rolling`.**
   devenv defaults to its own fork; this template follows the same nixpkgs as
-  every other template here. The shim above is not caused by that choice — it
-  reproduces identically under devenv's own default nixpkgs.
+  every other template here.
 - **Unlocked means devenv's own modules float, not just nixpkgs.** `devenv.yaml`
   declares one input, but devenv adds itself as a second, and `devenv.lock`
   pins both. Until you write that lock, `services.postgres` is whatever
@@ -89,8 +94,10 @@ reads it back — so a pass means the service genuinely started, not merely that
   `.devenv/test-state`, so testing never touches the database you develop
   against). `rm -rf .devenv` resets both completely. The socket itself lives
   outside the project, under a short per-project runtime directory —
-  `/run/user/<uid>/devenv-<hash>/postgres/` — which is what keeps it clear of
-  the 104-byte limit macOS puts on a unix socket path.
+  `$XDG_RUNTIME_DIR/devenv-<hash>/postgres/`, or `/tmp/devenv-<hash>/postgres/`
+  when that is unset, which is the case on macOS and on most CI. Short and
+  outside the project is the point: macOS refuses a unix socket path over 104
+  bytes, and a path under the project directory would not fit.
 - **Set `services.postgres.listen_addresses` if you need TCP** — a container,
   or a GUI client that cannot use a socket. It is empty by default, which is
   what keeps this template from fighting a system PostgreSQL on 5432.

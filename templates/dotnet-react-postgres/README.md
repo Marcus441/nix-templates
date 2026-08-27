@@ -18,7 +18,8 @@ devenv shell               # or: direnv allow
 ## What you get
 
 - **.NET 10 SDK**, pinned to match the `dotnet` template in this collection
-- **Node 24 and npm**, with the TypeScript language server wired up
+- **Node and npm** from nixpkgs, with the TypeScript language server wired up
+  (`languages.javascript.package` is the knob if you need a specific major)
 - **PostgreSQL**, started and stopped by devenv rather than by you, with a
   database `app` created on first start and no TCP port to collide with a
   server you already run
@@ -103,8 +104,11 @@ services, so it covers what a sandboxed `nix build` cannot.
   a second and the lock pins both — until then devenv's own service modules
   float, and the environment can change behaviour with no edit by you.
 - **The .NET SDK is pinned to `sdk_10_0`** rather than tracking devenv's default,
-  which is .NET 8. It matches the `dotnet` template in this collection. A pinned
-  major eventually leaves nixpkgs, so treat it as something to bump rather than
+  which is .NET 8, so that this template and the `dotnet` template agree on what
+  current means. The two spell the same major differently — `sdk_10_0` here,
+  `dotnetCorePackages.dotnet_10.sdk` there — because devenv wants an SDK
+  derivation and `buildDotnetModule` wants the wrapper attribute. A pinned major
+  eventually leaves nixpkgs, so treat it as something to bump rather than
   something to forget.
 - **There is no `nix fmt` here.** A flake template gets a `formatter` output;
   this one has no flake to hang it on. `dotnet format` covers the C# side, and
