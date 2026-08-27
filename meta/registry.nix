@@ -42,13 +42,13 @@
       locked = mkOption {
         type = types.bool;
         default = false;
-        description = "Ships a committed flake.lock. Must agree with .gitignore.";
+        description = "Ships a committed lock: flake.lock, or devenv.lock for kind = \"devenv\". Must agree with .gitignore.";
       };
 
       unfree = mkOption {
         type = types.bool;
         default = false;
-        description = "Harness exports NIXPKGS_ALLOW_UNFREE and passes --impure.";
+        description = "Harness exports NIXPKGS_ALLOW_UNFREE and passes --impure. kind = \"flake\" only.";
       };
 
       reason = mkOption {

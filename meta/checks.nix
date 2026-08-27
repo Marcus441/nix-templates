@@ -38,9 +38,9 @@
     # "devenv" template ships devenv.nix and devenv.yaml and no flake.nix at
     # all. Every check below that reads a template's *source* has to know which,
     # because interpolating a path that does not exist throws at eval — it would
-    # take `nix flake show` down for every template, and only a consumer would
-    # notice, since `nix flake init -t` and `nix build .#registry-json` keep
-    # working.
+    # take `nix flake check` down for every template rather than just the one at
+    # fault. `nix flake show`, `nix flake init -t` and `nix build
+    # .#registry-json` are unaffected — none of them forces a check derivation.
     kindOf = n: templates.${n}.kind;
     flakeNames = lib.filter (n: kindOf n == "flake") names;
     devenvNames = lib.filter (n: kindOf n == "devenv") names;
@@ -88,14 +88,12 @@
     # template has none, and null when it has no flake.nix at all. Extracted
     # rather than imported: importing every template's flake.nix would make a
     # syntax error in any one of them fail the whole root evaluation,
-    # including `nix flake show`.
+    # including every other check.
     #
     # A missing file is that same failure class and is guarded for the same
     # reason — builtins.readFile on a path that does not exist throws at eval,
-    # so one unreadable template would take `nix flake show` down for all of
-    # them. That is a consumer-facing break: `nix flake init -t` and
-    # `nix build .#registry-json` keep working, so nothing a maintainer runs
-    # would notice.
+    # so one unreadable template would take `nix flake check` down for all of
+    # them.
     descriptionOf = n: let
       f = root + "/${n}/flake.nix";
       m =
@@ -157,6 +155,19 @@
           dupes
       );
 
+      # `unfree` adds `--impure` to a nix command, which the devenv path never
+      # runs. Caught here rather than in the harness: it is knowable from the
+      # registry alone, and the harness would only discover it partway through a
+      # run, after minutes of building the templates that sort before it.
+      unfree-is-flake-only = decided "unfree-is-flake-only" (
+        lib.concatMap (
+          n:
+            lib.optional (templates.${n}.kind == "devenv" && templates.${n}.unfree)
+            "'${n}': unfree is not wired for kind=\"devenv\"; set allowUnfree in its devenv.yaml"
+        )
+        names
+      );
+
       # CLAUDE.md 3 — a narrowed tier without a reason is how the repo stops
       # describing itself.
       reason-required = decided "reason-required" (
@@ -207,7 +218,8 @@
         # Single-quoted: canonicalUrl contains double quotes of its own.
         expected='${canonicalUrl}'
         fail=0
-        ${lib.concatMapStringsSep "\n" (n: ''
+        ${lib.concatMapStringsSep "\n" (n:
+          lib.optionalString (exists n "flake.nix") ''
             found=$(grep -oE 'nixpkgs\.url = "[^"]*"' ${root + "/${n}/flake.nix"} | head -1 || true)
             if [ "$found" != "$expected" ]; then
               echo "  ${n}: nixpkgs pinned as $found" >&2
@@ -225,7 +237,7 @@
               fail=1
             fi
           '')
-          flakeNames}
+        flakeNames}
         if [ $fail -ne 0 ]; then
           echo "flake-inputs: see .claude/rules/template-flake-conventions.md" >&2
           exit 1
@@ -283,6 +295,11 @@
               echo "  ${n}: devenv.yaml has an absolute-path list entry (Inv. 1)" >&2
               fail=1
             fi
+            urls=$(grep -cE '^[[:space:]]*url:' ${root + "/${n}/devenv.yaml"} || true)
+            if [ "$urls" != 1 ]; then
+              echo "  ${n}: devenv.yaml declares $urls inputs; nixpkgs must be the only one (Inv. 4)" >&2
+              fail=1
+            fi
           '')
         devenvNames}
         if [ $fail -ne 0 ]; then
@@ -296,13 +313,14 @@
       # project generated from the template.
       outputs-ellipsis = pkgs.runCommand "check-outputs-ellipsis" {} ''
         fail=0
-        ${lib.concatMapStringsSep "\n" (n: ''
+        ${lib.concatMapStringsSep "\n" (n:
+          lib.optionalString (exists n "flake.nix") ''
             if ! sed -n '/outputs = {/,/}:/p' ${root + "/${n}/flake.nix"} | grep -q '\.\.\.'; then
               echo "  ${n}: outputs argument set has no '...' ellipsis" >&2
               fail=1
             fi
           '')
-          flakeNames}
+        flakeNames}
         if [ $fail -ne 0 ]; then
           echo "outputs-ellipsis: see .claude/rules/template-flake-conventions.md" >&2
           exit 1
