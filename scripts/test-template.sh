@@ -138,6 +138,17 @@ for name in "${names[@]}"; do
   # a redirected HOME the harness mutates the developer's home directory and
   # stops being reproducible on a fresh CI runner.
   export HOME="$work/home"
+  # nix falls back to $HOME/.cache only when XDG_CACHE_HOME is unset, and
+  # devenv reads the XDG variables directly rather than deriving them from
+  # HOME. Without these three the redirect above is conditional on the caller
+  # having left them unset, which is not something the harness can assume.
+  #
+  # XDG_CONFIG_HOME is deliberately not redirected: nix reads
+  # $XDG_CONFIG_HOME/nix/nix.conf, and a developer whose experimental-features
+  # live there rather than in /etc/nix would lose them mid-run.
+  export XDG_CACHE_HOME="$HOME/.cache"
+  export XDG_DATA_HOME="$HOME/.local/share"
+  export XDG_STATE_HOME="$HOME/.local/state"
   mkdir -p "$HOME"
 
   # No registry entry sets `unfree` today — every template that needs it sets
