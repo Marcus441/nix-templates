@@ -19,6 +19,13 @@ work. If a proposed check only needs to *read* template sources or the registry,
 it belongs in `meta/checks.nix` and should go there — that layer is seconds, not
 minutes.
 
+**The split survived a second template kind.** A `checks` derivation cannot
+start a postgres any more than it can run `nix develop` — no network, no
+daemon — so `kind = "devenv"` went into `scripts/test-template.sh` beside the
+flake path rather than into `meta/checks.nix`. What went into `checks.nix` was
+the part that only reads sources: which files a kind must ship, and the nixpkgs
+spelling in `devenv.yaml`.
+
 **Rejected: adding each template as a `path:` input** so the root flake
 evaluates them. It answers a different question — it evaluates the template in
 place, from this repo's tree, never the copy a consumer gets — and the parent

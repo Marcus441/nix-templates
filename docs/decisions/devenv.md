@@ -28,6 +28,14 @@ the `build` tier runs `nix build .#default`. So the harness's
 the devenv one — a green tier testing the road not taken, which is the §3
 failure mode exactly.
 
+**Superseded on this point — see `docs/decisions/devenv-templates.md`.** The
+paragraph below deferred the decision; the trigger it was waiting for arrived,
+and devenv is now a `kind` in the registry. The cost estimate turned out to be
+accurate and was paid deliberately. Everything else in this document stands,
+including the two rejections at the end, and the enforcement note below is now
+conditional: `flake-inputs` greps the five frameworks in `kind = "flake"`
+templates only.
+
 **Rejected: first-class devenv support in the registry.** It is new machinery,
 not a style change: a `kind` field in `meta/registry.nix`; `flake-inputs`,
 `lock-policy` and `template-hygiene` each branching on it; a second harness path
