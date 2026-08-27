@@ -35,6 +35,12 @@ set -uo pipefail
 REPO=$(git rev-parse --show-toplevel) || exit 2
 SYSTEM=$(nix eval --impure --raw --expr 'builtins.currentSystem') || exit 2
 
+# Resolved before the loop rebinds HOME. nix reads $XDG_CONFIG_HOME/nix/nix.conf
+# and falls back to $HOME/.config when it is unset — which, with HOME redirected
+# below, would silently drop the caller's nix.conf and take their
+# experimental-features with it.
+export XDG_CONFIG_HOME="${XDG_CONFIG_HOME:-$HOME/.config}"
+
 keep=0
 ceiling=""
 selected=()
@@ -111,13 +117,23 @@ field() { jq -r --arg n "$1" ".[\$n].$2" "$registry"; }
 #
 # Not named `devenv`, or `command -v devenv` below would find the function.
 DEVENV_BIN=$(command -v devenv || true)
-run_devenv() {
-  if [ -n "$DEVENV_BIN" ]; then
-    "$DEVENV_BIN" "$@"
-  else
-    nix run --inputs-from "$REPO" nixpkgs#devenv -- "$@"
-  fi
+
+# Resolve once. Each step below runs in a `( cd … && … )` subshell, so a lazy
+# assignment inside run_devenv would be discarded every time and CI — where
+# devenv is deliberately off PATH — would pay a full flake evaluation per
+# command, teardown included.
+ensure_devenv() {
+  [ -n "$DEVENV_BIN" ] && return 0
+  # Assign only on success: `X=$(failing)/bin/devenv` still assigns, and a
+  # poisoned DEVENV_BIN would make every later devenv template fail at `devenv
+  # info` with a nonsense log instead of naming the real cause.
+  resolved=$(nix build --no-link --print-out-paths \
+    --inputs-from "$REPO" nixpkgs#devenv 2>/dev/null) || return 1
+  [ -x "$resolved/bin/devenv" ] || return 1
+  DEVENV_BIN="$resolved/bin/devenv"
 }
+
+run_devenv() { "$DEVENV_BIN" "$@"; }
 
 # The flake path has nothing to clean up beyond a directory, so this script has
 # never needed a trap. devenv starts processes, and an interrupt between `up`
@@ -125,13 +141,21 @@ run_devenv() {
 # shell is about to forget.
 current_work=""
 current_kind=""
+current_runtime=""
 # shellcheck disable=SC2317  # reached via trap
 on_exit() {
-  if [ -n "$current_work" ] && [ "$current_kind" = "devenv" ]; then
+  if [ -n "$current_work" ] && [ "$current_kind" = "devenv" ] && [ -n "$DEVENV_BIN" ]; then
     (cd "$current_work" && run_devenv processes down) >/dev/null 2>&1 || true
   fi
+  # The runtime dir holds the process-manager socket and a 0700 netrc, and it
+  # lives outside $work so an interrupt would otherwise strand it in /tmp.
+  [ -n "$current_runtime" ] && rm -rf "$current_runtime"
+  return 0
 }
-trap on_exit EXIT INT TERM
+# EXIT alone would leave INT running the handler and then *continuing* the
+# loop, so Ctrl-C would tear down one template and start the next.
+trap on_exit EXIT
+trap 'on_exit; exit 130' INT TERM
 
 if [ -n "${list:-}" ]; then
   printf '%-24s %-7s %-6s %-7s %-7s %s\n' template kind tier locked unfree reason
@@ -165,15 +189,6 @@ for name in "${names[@]}"; do
   fi
 
   kind=$(field "$name" kind)
-
-  # An explicit refusal rather than a silent drop: the impure array below holds
-  # a nix flag, and devenv spells it -i as a *global* option that has to precede
-  # the subcommand. A devenv template that needs unfree says so in devenv.yaml.
-  if [ "$kind" = "devenv" ] && [ "$(field "$name" unfree)" = "true" ]; then
-    echo "error: 'unfree' is not wired for kind=devenv" >&2
-    echo "  set allowUnfree in ${name}'s devenv.yaml instead" >&2
-    exit 2
-  fi
 
   if ! jq -e --arg n "$name" --arg s "$SYSTEM" \
     '.[$n].systems | index($s)' "$registry" >/dev/null; then
@@ -210,7 +225,17 @@ for name in "${names[@]}"; do
   export XDG_CACHE_HOME="$HOME/.cache"
   export XDG_DATA_HOME="$HOME/.local/share"
   export XDG_STATE_HOME="$HOME/.local/state"
+  # devenv derives its runtime directory from XDG_RUNTIME_DIR, falling back to
+  # /tmp — never TMPDIR, because a unix socket lives there and the path has to
+  # stay short. Redirecting it keeps the socket and the 0700 netrc out of the
+  # caller's session, but it must NOT go under $work: a macOS runner's TMPDIR is
+  # ~49 characters before the template name, and postgres refuses a sun_path
+  # over 104. Hence a short sibling, removed with $work below.
+  runtime=$(mktemp -d "/tmp/dvrt-XXXXXX")
+  current_runtime="$runtime"
+  export XDG_RUNTIME_DIR="$runtime"
   mkdir -p "$HOME"
+  chmod 700 "$runtime"
 
   # No registry entry sets `unfree` today — every template that needs it sets
   # config.allowUnfree in its own flake — so this array is normally empty, and
@@ -242,6 +267,11 @@ for name in "${names[@]}"; do
   fi
 
   if [ "$kind" = "devenv" ]; then
+    if [ $ok -eq 1 ] && ! ensure_devenv; then
+      ok=0
+      step="nix build --inputs-from $REPO nixpkgs#devenv"
+    fi
+
     if [ $ok -eq 1 ]; then
       if ! (cd "$work" && run_devenv info) >"$log" 2>&1; then
         ok=0
@@ -254,7 +284,7 @@ for name in "${names[@]}"; do
         [ -n "$cmd" ] || continue
         # The `--` is load-bearing: -c is a *global* devenv option (--clean), so
         # `devenv shell bash -c "…"` would scrub the environment being tested.
-        if ! (cd "$work" && run_devenv shell -- bash -c "$cmd") >"$log" 2>&1; then
+        if ! (cd "$work" && run_devenv shell -- bash -c "$cmd") </dev/null >"$log" 2>&1; then
           ok=0
           step="devenv shell -- bash -c \"$cmd\""
           break
@@ -289,7 +319,7 @@ for name in "${names[@]}"; do
     if [ $ok -eq 1 ] && [ "$(rank "$tier")" -ge 1 ]; then
       while read -r cmd; do
         [ -n "$cmd" ] || continue
-        if ! (cd "$work" && nix develop ${impure[@]+"${impure[@]}"} --command bash -c "$cmd") >"$log" 2>&1; then
+        if ! (cd "$work" && nix develop ${impure[@]+"${impure[@]}"} --command bash -c "$cmd") </dev/null >"$log" 2>&1; then
           ok=0
           step="nix develop --command $cmd"
           break
@@ -332,8 +362,9 @@ for name in "${names[@]}"; do
   if [ $keep -eq 1 ]; then
     kept+=("$work")
     printf '  full log:   %s\n' "$log"
+    printf '  runtime:    %s\n' "$runtime"
   else
-    rm -rf "$work" "$log"
+    rm -rf "$work" "$log" "$runtime"
   fi
 
   # Teardown already ran above, including under --keep: the reproduce line is
@@ -341,6 +372,7 @@ for name in "${names[@]}"; do
   # --keep in CI would otherwise leak them.
   current_work=""
   current_kind=""
+  current_runtime=""
 done
 
 echo
