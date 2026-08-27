@@ -319,8 +319,17 @@ items are deleted and survivors keep their numbers.
 - **No unrequested changes.** No package bumps, no nixpkgs bumps, no
   reformatting a template the current task does not touch. A template someone
   depends on is not a scratchpad.
-- **Do not introduce a framework** (devenv, snowfall, flake-file, numtide
-  blueprint) without being asked — into the registry or into a template.
+- **Never file an issue or open a pull request outside this repository.** When
+  a devenv module, a nixpkgs package or any other upstream is at fault, the
+  options are a workaround here with a documented removal trigger, or waiting.
+  Not a contribution there. Do not file it, do not draft one to be reviewed,
+  and do not offer to — the answer has already been given. `gh` is for this
+  repository's own branches and PRs, and for the `drift` job's issue; nothing
+  else.
+- **Do not introduce a framework** (snowfall, flake-file, numtide blueprint)
+  without being asked — into the registry or into a template. devenv is now a
+  `kind` rather than a banned framework, but adding a *second* class is the
+  same kind of decision and wants the same conversation first.
 - **Do not re-propose:** the dendritic pattern for this repo (§2); a shared
   library for templates (Inv. 1 makes it impossible); moving
   `templates/android-kotlin/.github/workflows/ci.yml` to the repo root — it lives inside

@@ -122,3 +122,7 @@ The revisions a working run used are in that project's `devenv.lock`, which is
 the only place either is recorded. This is not hypothetical:
 `devenv-postgres` went from passing to failing overnight on a `cachix/devenv`
 re-resolve, with no commit in this repository.
+
+When the fault is genuinely devenv's, the response is a workaround here with a
+documented removal trigger, or waiting — **never a bug report or a pull request
+against devenv**, and never an offer to draft one. CLAUDE.md §9.
