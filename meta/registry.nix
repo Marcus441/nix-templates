@@ -12,6 +12,15 @@
         description = "Shown by `nix flake show` and `nix flake init -t`.";
       };
 
+      # Which artifact the template ships, and therefore which commands prove
+      # it. "flake" is a flake.nix on one nixpkgs input; "devenv" is a
+      # devenv.nix plus devenv.yaml and no flake.nix at all. CLAUDE.md 1.4.
+      kind = mkOption {
+        type = types.enum ["flake" "devenv"];
+        default = "flake";
+        description = "Which artifact shape the template ships. CLAUDE.md 1.4.";
+      };
+
       tier = mkOption {
         type = types.enum ["eval" "shell" "build"];
         default = "shell";
@@ -21,7 +30,7 @@
       smoke = mkOption {
         type = types.listOf types.str;
         default = [];
-        description = "Commands run inside `nix develop` at tier >= shell.";
+        description = "Commands run in the template's shell at tier >= shell: `nix develop`, or `devenv shell --`.";
       };
 
       systems = mkOption {
@@ -78,21 +87,45 @@
   # `nix flake init` is the one moment a consumer is guaranteed to be looking,
   # and the first thing they hit is that a flake ignores untracked files. Say
   # it here rather than leaving it to a README they have not opened yet.
-  standardWelcome = name: t: ''
-    # ${name}
+  #
+  # Two whole strings rather than one with the differing lines interpolated:
+  # nix strips each indented string's common indentation independently, then
+  # splices the result at whatever column the interpolation sits at, so a
+  # nested ''...'' arrives mangled.
+  standardWelcome = name: t:
+    if t.kind == "devenv"
+    then ''
+      # ${name}
 
-    ${t.description}
+      ${t.description}
 
-    A flake only sees files that git tracks, so initialise the repository
-    before entering the shell:
+      This is a devenv environment rather than a flake: there is no
+      `flake.nix`, and `nix develop` does not apply here. Install devenv —
+      https://devenv.sh — then:
 
-    ```
-    git init && git add -A
-    nix develop            # or: direnv allow
-    ```
+      ```
+      git init && git add -A
+      devenv shell           # or: direnv allow
+      ```
 
-    `README.md` covers building, testing and what to change first.
-  '';
+      `README.md` covers the services, the test command and what to change
+      first.
+    ''
+    else ''
+      # ${name}
+
+      ${t.description}
+
+      A flake only sees files that git tracks, so initialise the repository
+      before entering the shell:
+
+      ```
+      git init && git add -A
+      nix develop            # or: direnv allow
+      ```
+
+      `README.md` covers building, testing and what to change first.
+    '';
 
   mapped =
     lib.mapAttrs (name: t: {
