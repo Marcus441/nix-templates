@@ -45,7 +45,12 @@ when such a template actually exists, not before." Two things to add now that th
 trigger has been *named* — a local postgres and redis, a C#/React stack — but not
 built:
 
-- **The harness cannot follow.** `scripts/test-template.sh` has no service
+- **The harness cannot follow.** *(No longer true — `devenv test` supplies the
+  up / health-wait / run / down this bullet asks for, and
+  `docs/decisions/devenv-templates.md` records the decision that followed. The
+  reasoning is kept because it is what the second kind had to answer, and
+  because the rule above it — a template ships an environment, not a project —
+  governs a devenv template exactly as it governs a flake one.)* `scripts/test-template.sh` has no service
   lifecycle and no place to grow one cheaply. Each `smoke` entry is a separate
   `nix develop --command`, so nothing survives between them and a `pg_ctl start`
   in one is gone by the next. The `build` tier is a sandbox with no network, so a
