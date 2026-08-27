@@ -62,7 +62,7 @@ jobs:
           matrix=$(jq -c --argjson runners "$RUNNERS" '[to_entries[] as $t
                            | $runners[] as $r
                            | select($t.value.systems | index($r.system))
-                           | {name: $t.key, tier: $t.value.tier, os: $r.os, system: $r.system}]' <<<"$json")
+                           | {name: $t.key, kind: $t.value.kind, tier: $t.value.tier, os: $r.os, system: $r.system}]' <<<"$json")
           echo "matrix=$matrix" >>"$GITHUB_OUTPUT"
 
           # Anything a template claims that no runner covers is stated here
@@ -109,7 +109,13 @@ jobs:
       - uses: nix-community/cache-nix-action@v6
         if: matrix.system == 'x86_64-linux'
         with:
-          primary-key: nix-${{ matrix.system }}-${{ matrix.name }}-${{ hashFiles(format('templates/{0}/flake.nix', matrix.name), format('templates/{0}/flake.lock', matrix.name)) }}
+          # Both kinds' artifacts in one hashFiles. It returns "" for a pattern
+          # that matches nothing rather than failing, so a devenv leg keyed only
+          # on flake.nix would not go red — its key would quietly become a
+          # constant and never invalidate on a devenv.nix edit. Listing the
+          # files rather than templates/{0}/* keeps a README edit from churning
+          # the key.
+          primary-key: nix-${{ matrix.system }}-${{ matrix.name }}-${{ hashFiles(format('templates/{0}/flake.nix', matrix.name), format('templates/{0}/flake.lock', matrix.name), format('templates/{0}/devenv.nix', matrix.name), format('templates/{0}/devenv.yaml', matrix.name), format('templates/{0}/devenv.lock', matrix.name)) }}
           restore-prefixes-first-match: nix-${{ matrix.system }}-${{ matrix.name }}-
           gc-max-store-size: 4G
           purge: true
