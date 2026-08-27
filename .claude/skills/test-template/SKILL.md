@@ -17,12 +17,24 @@ flake. Only the harness does that.
 ./scripts/test-template.sh              # every template, at its declared tier
 ./scripts/test-template.sh rust cpp     # only these
 ./scripts/test-template.sh --list       # the registry as a table
-./scripts/test-template.sh --tier eval  # cap everything at eval (fast sweep)
+./scripts/test-template.sh --tier eval  # cap everything at eval (see the note below)
 ./scripts/test-template.sh --keep rust  # leave the temp dir for debugging
 ```
 
 For each template the harness makes a temp dir, runs `nix flake init -t
-.#<name>`, `git init && git add -A`, then runs the tier's steps.
+.#<name>`, `git init && git add -A`, then runs the tier's steps — which depend
+on the template's `kind`:
+
+| Tier | `kind = "flake"` | `kind = "devenv"` |
+| --- | --- | --- |
+| `eval` | `nix flake check --no-build` | `devenv info` |
+| `shell` | `nix develop --command` each `smoke` | `devenv shell --` each `smoke` |
+| `build` | `nix build .#default` | `devenv test` |
+
+`--tier eval` stopped being a cheap sweep once a devenv template existed:
+`devenv info` has to resolve devenv's module set, which is not fast on a cold
+cache. `devenv` is resolved by the harness itself when it is not on `PATH`, so
+there is nothing to install first.
 
 ## What a result means
 
@@ -31,6 +43,11 @@ For each template the harness makes a temp dir, runs `nix flake init -t
 | `PASS` | Everything the tier covers succeeded. **It does not mean the template is good** — see the tier table. |
 | `FAIL` | Prints the temp dir and the exact failing command. Reproduce before theorising. |
 | `SKIP` | The template's `systems` excludes this machine. Not a pass; nothing ran. |
+
+For a devenv template, `PASS` at `build` is a stronger claim than for a flake:
+`devenv test` starts the declared processes and runs `enterTest` against them.
+It is also a weaker one in a different direction — it is not sandboxed and has
+network, so it says nothing about hermeticity.
 
 Tiers (CLAUDE.md §3): `eval` instantiates and evaluates; `shell` also opens the
 dev shell and runs each `smoke` command; `build` also runs `nix build .#default`,
