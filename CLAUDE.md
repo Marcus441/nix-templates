@@ -2,8 +2,8 @@
 
 This repository publishes **project templates** consumed by
 `nix flake init -t github:Marcus441/nix-templates#<name>`. Its product is not a
-configuration — it is twelve standalone projects that other people copy: eleven
-flakes, and one devenv environment. That one fact drives every rule below. If a
+configuration — it is fourteen standalone projects that other people copy:
+eleven flakes, and three devenv environments. That one fact drives every rule below. If a
 change would violate an invariant, stop and say so.
 
 §7 lists where the repo does **not yet** satisfy its own invariants. Read it
@@ -28,7 +28,7 @@ deliberately not. The reasoning is in §2 — do not "fix" the inconsistency.
 3. **Every template directory is registered; every registry entry has a
    directory.** Checked.
 4. **A template declares its `kind`, and the kind decides its shape.**
-   `kind = "flake"` — eleven of the twelve, and the default — means **one input,
+   `kind = "flake"` — eleven of the fourteen, and the default — means **one input,
    nixpkgs**, and a four-line `forAllSystems` over `nixpkgs.lib.genAttrs` with
    the `systems` list written out and checked against the registry. Never
    introduce `flake-utils`, flake-parts, import-tree, devenv or snowfall *into
@@ -62,8 +62,8 @@ nixpkgs. It exists to *describe and test* the templates. `flake.templates` is
 `mapAttrs` over `config.templates`; adding a registry entry is what publishes a
 template.
 
-**The templates** are twelve unrelated projects that happen to live in one git
-repo — eleven flakes and one devenv environment. They share no code and cannot.
+**The templates** are fourteen unrelated projects that happen to live in one
+git repo — eleven flakes and three devenv environments. They share no code and cannot.
 They are the artifact.
 
 The second kind arrived in `docs/decisions/devenv-templates.md`, and it is the
