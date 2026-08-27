@@ -76,6 +76,13 @@
       reason = "packages.default needs a project scaffolded by the user, plus a generated nix/deps.json";
     };
 
+    dotnet-react-postgres = {
+      description = "devenv environment for .NET and React with a local PostgreSQL";
+      kind = "devenv";
+      tier = "build";
+      smoke = ["dotnet --version" "node --version" "psql --version"];
+    };
+
     python = {
       description = "Dev environment for Python with uv, ruff and mypy";
       tier = "build";
