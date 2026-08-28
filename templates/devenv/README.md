@@ -142,6 +142,10 @@ to inspect one.
 - **`.envrc` uses `eval "$(devenv direnvrc)"`** rather than the `source_url`
   line `devenv init` writes, which pins a hash of a file on GitHub and rots.
   This form asks your installed devenv for its own copy.
+- **For editing `devenv.nix` itself, use `devenv lsp`.** It starts nixd already
+  configured for this file, using the nixd bundled inside the devenv binary, so
+  there is nothing to add to `packages`. `devenv lsp --print-config` shows what
+  it hands nixd.
 - **There is no `nix fmt` here.** A flake template gets a `formatter` output;
   this one has no flake to hang it on. `devenv` integrates git hooks if you want
   formatting enforced — see

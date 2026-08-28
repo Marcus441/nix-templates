@@ -20,6 +20,7 @@ devenv shell               # or: direnv allow
 - **.NET 10 SDK**, pinned to match the `dotnet` template in this collection
 - **Node and npm** from nixpkgs, with the TypeScript language server wired up
   (`languages.javascript.package` is the knob if you need a specific major)
+- **`roslyn-ls`**, Microsoft's own C# language server, on every platform
 - **PostgreSQL**, started and stopped by devenv rather than by you, with a
   database `app` created on first start and no TCP port to collide with a
   server you already run
@@ -110,6 +111,22 @@ services, so it covers what a sandboxed `nix build` cannot.
   derivation and `buildDotnetModule` wants the wrapper attribute. A pinned major
   eventually leaves nixpkgs, so treat it as something to bump rather than
   something to forget.
+- **The C# language server is `roslyn-ls`, not devenv's default.** devenv
+  defaults `languages.dotnet.lsp.package` to `csharp-ls`, which is a community
+  project; `roslyn-ls` is the server behind Microsoft's own C# extension. The
+  binary is `Microsoft.CodeAnalysis.LanguageServer` — point your editor at that,
+  with `--stdio`.
+
+  `lsp.enable` is set explicitly for a reason that is not obvious: its default
+  is `availableOn <host> csharp-ls`, and `csharp-ls` declares
+  `badPlatforms = ["aarch64-darwin"]`. So on an Apple Silicon Mac the default
+  resolves to *false* and you get no C# server at all — and changing only
+  `lsp.package` would not have fixed it, because the default is computed from
+  `csharp-ls` whatever package you choose. `roslyn-ls` has no such exclusion.
+- **For editing `devenv.nix` itself, use `devenv lsp`.** It starts nixd already
+  configured for this file, using the nixd bundled inside the devenv binary —
+  so there is nothing to add to `packages`, and `devenv lsp --print-config`
+  shows what it hands nixd.
 - **There is no `nix fmt` here.** A flake template gets a `formatter` output;
   this one has no flake to hang it on. `dotnet format` covers the C# side, and
   devenv can run git hooks — see [devenv.sh/git-hooks](https://devenv.sh/git-hooks/).
