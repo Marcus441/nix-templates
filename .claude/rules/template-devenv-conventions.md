@@ -61,6 +61,19 @@ inherited.
   is the knob, and the README should name it. Precedent: `4be382a`, which
   stopped pinning LLVM 18 for the same reason — a pinned major eventually
   leaves nixpkgs.
+- **Never add a Nix language server to `packages`.** `devenv lsp` starts nixd
+  already configured for `devenv.nix`, using the nixd bundled inside the devenv
+  binary the consumer installed — `pkgs.nixd` would be a second copy in the
+  closure for nothing. Note the flake templates ship no Nix LSP either: a
+  template ships the *project's* language server, not one for its own build
+  definition.
+- **Check what a `languages.<x>.lsp.enable` default is computed from.** It is
+  not always `true`, and it does not always track `lsp.package`.
+  `languages.dotnet.lsp.enable` defaults to `availableOn <host> csharp-ls`, and
+  `csharp-ls` sets `badPlatforms = ["aarch64-darwin"]` — so overriding only
+  `lsp.package` leaves Apple Silicon with no server at all. Set `enable`
+  explicitly when you override the package, and check the replacement is
+  actually available on every system the registry claims.
 - **`unfree` goes in `devenv.yaml`, not the registry.** The registry's `unfree`
   flag adds `--impure` to a `nix` command, which the devenv path never runs.
   `checks.unfree-is-flake-only` rejects it in seconds at `nix flake check`,

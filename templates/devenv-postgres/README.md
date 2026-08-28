@@ -60,6 +60,10 @@ reads it back — so a pass means the service genuinely started, not merely that
   create-then-insert would fail the *second* time you run it. The harness never
   sees this, because it instantiates into a fresh directory every time; you
   would. Anything you put in `enterTest` has to be re-runnable.
+- **For editing `devenv.nix` itself, use `devenv lsp`.** It starts nixd already
+  configured for this file, using the nixd bundled inside the devenv binary, so
+  there is nothing to add to `packages`. `devenv lsp --print-config` shows what
+  it hands nixd.
 - **Why there is no `flake.nix`.** devenv's flake integration cannot start
   processes — its own documentation says so — and it needs
   `nix develop --no-pure-eval`. Since supervised services are the entire reason
