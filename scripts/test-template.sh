@@ -135,6 +135,19 @@ ensure_devenv() {
 
 run_devenv() { "$DEVENV_BIN" "$@"; }
 
+# Go marks its module cache read-only, the directories included and not just the
+# files, so `rm -rf` cannot unlink what is inside them. A devenv template whose
+# GOPATH lands under $work therefore leaves tens of MiB in TMPDIR and a
+# screenful of "Permission denied" behind every run. Every other template's tree
+# is already writable, so the chmod costs them nothing.
+remove_tree() {
+  for tree in "$@"; do
+    [ -e "$tree" ] || continue
+    chmod -R u+w "$tree" 2>/dev/null || true
+    rm -rf "$tree"
+  done
+}
+
 # The flake path has nothing to clean up beyond a directory, so this script has
 # never needed a trap. devenv starts processes, and an interrupt between `up`
 # and `down` leaves them running with their only handle inside a directory the
@@ -149,7 +162,7 @@ on_exit() {
   fi
   # The runtime dir holds the process-manager socket and a 0700 netrc, and it
   # lives outside $work so an interrupt would otherwise strand it in /tmp.
-  [ -n "$current_runtime" ] && rm -rf "$current_runtime"
+  [ -n "$current_runtime" ] && remove_tree "$current_runtime"
   return 0
 }
 # EXIT alone would leave INT running the handler and then *continuing* the
@@ -364,7 +377,7 @@ for name in "${names[@]}"; do
     printf '  full log:   %s\n' "$log"
     printf '  runtime:    %s\n' "$runtime"
   else
-    rm -rf "$work" "$log" "$runtime"
+    remove_tree "$work" "$log" "$runtime"
   fi
 
   # Teardown already ran above, including under --keep: the reproduce line is
