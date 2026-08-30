@@ -2,7 +2,7 @@
 
 Project templates for `nix flake init`. Each is standalone and provides a
 reproducible dev shell, and in most cases a buildable package. Eleven are
-flakes that need nothing but Nix; three are [devenv](https://devenv.sh)
+flakes that need nothing but Nix; four are [devenv](https://devenv.sh)
 environments, for services a flake cannot supervise.
 
 ```bash
@@ -29,6 +29,7 @@ With no `#name`, you get `shell` — a minimal dev shell to fill in.
 | `devenv` | Minimal devenv environment to fill in. **Needs devenv installed** |
 | `devenv-postgres` | A local PostgreSQL, started and stopped by devenv. **Needs devenv installed** |
 | `dotnet-react-postgres` | .NET 10 + TypeScript + a supervised PostgreSQL, with a `/health` endpoint that queries it. **Needs devenv installed** |
+| `go-react-postgres` | Go + TypeScript + a supervised PostgreSQL, with a `/health` endpoint that queries it. **Needs devenv installed** |
 
 `nix flake show github:Marcus441/nix-templates` lists them with descriptions.
 
@@ -39,7 +40,7 @@ The eleven flake templates also share the same flake shape: one `nixpkgs`
 input, an explicit `systems` list, a `forAllSystems` helper, and a `formatter`
 output so `nix fmt` works in the project you generate.
 
-The three devenv templates are the exception. They ship `devenv.nix` and
+The four devenv templates are the exception. They ship `devenv.nix` and
 `devenv.yaml` instead of a `flake.nix`, so `nix develop` does not apply and you
 need devenv on your machine — `nix profile install nixpkgs#devenv`. The trade is
 that devenv starts and stops services for you, which a flake dev shell cannot

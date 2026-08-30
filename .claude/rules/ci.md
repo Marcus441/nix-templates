@@ -81,4 +81,4 @@ tier.
 `cache.nixos.org`, so the cost is download, which the Actions store cache
 removes. Cachix would need a secret and would break fork PRs for no benefit.
 Keep `gc-max-store-size` set: the `cpp` and `rust` closures will otherwise
-exhaust the 10 GB per-repository cache budget across fourteen keys.
+exhaust the 10 GB per-repository cache budget across fifteen keys.
