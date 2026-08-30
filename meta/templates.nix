@@ -83,6 +83,13 @@
       smoke = ["dotnet --version" "node --version" "psql --version"];
     };
 
+    go-react-postgres = {
+      description = "devenv environment for Go and React with a local PostgreSQL";
+      kind = "devenv";
+      tier = "build";
+      smoke = ["go version" "node --version" "psql --version"];
+    };
+
     python = {
       description = "Dev environment for Python with uv, ruff and mypy";
       tier = "build";
