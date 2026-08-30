@@ -1,0 +1,29 @@
+# Nix
+result
+result-*
+.direnv/
+
+# devenv
+.devenv*
+devenv.local.nix
+
+# Go build output
+/bin/
+/api
+*.test
+*.out
+
+# Node
+node_modules/
+dist/
+
+# Editors / OS
+.vscode/
+.idea/
+.vs/
+*.swp
+*.swo
+.DS_Store
+
+.env
+*.log
