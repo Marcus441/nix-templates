@@ -1,25 +1,28 @@
 # dotnet
 
-Dev environment for .NET, with F# tooling. The dev shell gives you the SDK; you
-scaffold the project itself with `dotnet new` after entering it.
+devenv environment for .NET, with F# tooling. The environment gives you the
+SDK; you scaffold the project itself with `dotnet new` after entering it.
 
 ```bash
 nix flake init -t 'github:Marcus441/nix-templates#dotnet'
-git init && git add -A     # flakes see only tracked files
-nix develop                # or: direnv allow
+git init && git add -A
+devenv shell               # or: direnv allow
 ```
+
+## Requirements
+
+**devenv, installed** — https://devenv.sh. There is no `flake.nix` here, so
+`nix develop` does not apply. `nix profile install nixpkgs#devenv` is enough.
 
 ## What you get
 
-The .NET 10 SDK and `fantomas` (F# formatter). `config.allowUnfree = true` is
-set inside the flake, so nothing extra is needed on the command line.
+- **the .NET 10 SDK** (`dotnetCorePackages.sdk_10_0`)
+- **`fantomas`**, the F# formatter, from nixpkgs
+- **telemetry and first-run noise already off** — `DOTNET_CLI_TELEMETRY_OPTOUT`
+  and `DOTNET_NOLOGO` are set in `env`
 
-Two package outputs, and which of them exists depends on your project:
-
-| Output | When it exists |
-| --- | --- |
-| `packages.fetch-deps` | always — it is what generates the NuGet lock |
-| `packages.default` | once `nix/deps.json` is present |
+What you do *not* get is a project: `dotnet new` writes a better one than this
+template could keep current.
 
 ## Building
 
@@ -29,70 +32,58 @@ Two package outputs, and which of them exists depends on your project:
 dotnet new console -n MyApp      # or: webapi, classlib, xunit, etc.
 ```
 
-### 2. Update `flake.nix`
-
-Edit the values at the top of the `let` block to match what you scaffolded:
-
-```nix
-projectName = "MyApp";
-projectFile = "./MyApp/MyApp.csproj";
-testProjectFile = "./MyApp.Test/MyApp.Test.csproj";
-version = "0.0.1";
-dotnetVersion = "dotnet_10";  # dotnet_8 | dotnet_9 | dotnet_10
-```
-
-### 3. Generate NuGet deps
-
-Once the project has NuGet dependencies — that is, after `dotnet restore`:
+### 2. Build and run
 
 ```bash
-git add -A                                       # the flake must see the project
-nix build '.#fetch-deps' && ./result "$PWD/nix/deps.json"
+dotnet build MyApp
+dotnet run --project MyApp
 ```
 
-Pass the path explicitly. Inside a flake the source is a store path, so the
-script cannot infer where you want the file written. Commit `nix/deps.json`
-alongside your project, and re-run this whenever a NuGet dependency changes.
+Plain `dotnet` commands — no Nix build wraps them, so there is no NuGet lock
+file to generate and nothing to regenerate when a dependency changes.
+`dotnet restore` talks to nuget.org directly.
 
-### 4. Build
-
-`packages.default` appears as soon as `nix/deps.json` is present:
+### 3. Test
 
 ```bash
-nix build
-nix run                 # runs the built binary
+dotnet new xunit -n MyApp.Tests
+dotnet test MyApp.Tests
 ```
-
-## Testing
-
-Tests run automatically during `nix build` (`doCheck = true`). Set it to `false`
-to skip them. Outside Nix, `dotnet test` as usual.
 
 ## F# tooling
 
-`fantomas` comes from nixpkgs and is already in the dev shell. For a tool that
-is not packaged in nixpkgs, use `pkgs.buildDotnetGlobalTool` — you supply
-`nugetHash`, which you get from the first failed build.
-
-Do **not** read `.config/dotnet-tools.json` from Nix. Keep it as a genuine
-`dotnet tool restore` artifact used by the CLI: a template that reads a file it
-does not ship cannot be evaluated by whoever just initialised it.
+`fantomas` comes from nixpkgs and is already on `PATH`. For a tool nixpkgs does
+not package, `.config/dotnet-tools.json` and `dotnet tool restore` work as they
+would anywhere — nothing here evaluates that file.
 
 ## Notes
 
-- **`nugetDeps` points at `./nix/deps.json` before that file exists, and that is
-  deliberate.** `passthru.fetch-deps` — the script that writes the lock — only
-  exists when `nugetDeps` is a *path*; pass `null` and `buildDotnetModule` never
-  applies `addNuGetDeps` at all, so there is nothing to generate the lock with.
-  A path to a missing file is exactly what makes the bootstrap reachable.
-- **`packages.default` is guarded on `builtins.pathExists`, `fetch-deps` is
-  not.** Reading a missing `deps.json` would make the template un-evaluatable
-  the moment someone initialises it, so the package that needs the file waits
-  for it. The generator does not read it and therefore does not have to wait —
-  which is the whole point, since it is what creates the file.
-- `projectFile` and `testProjectFile` can be set to `null` to let
-  `buildDotnetModule` auto-discover the `.csproj`/`.fsproj` files.
-- `DOTNET_CLI_TELEMETRY_OPTOUT` and `DOTNET_NOLOGO` are set in the dev shell.
-  They keep the SDK from phoning home and from writing a `~/.dotnet/` first-run
-  sentinel inside a build sandbox.
-- `nix fmt` formats `flake.nix` with alejandra.
+- **`languages.dotnet.lsp.enable` is `false` deliberately.** The default is
+  computed as `availableOn <host> csharp-ls`, and `csharp-ls` declares
+  `badPlatforms = ["aarch64-darwin"]` — so on an Apple Silicon Mac the default
+  resolves to *false* and the server is silently absent. Rather than ship a
+  language server that exists on some platforms and not others, this template
+  ships none. Opt in with `lsp.enable = true; lsp.package = pkgs.roslyn-ls;` —
+  the `dotnet-react-postgres` template in this collection is the worked
+  example.
+- **The SDK is pinned to `sdk_10_0`** rather than tracking devenv's default,
+  which is .NET 8. A pinned major eventually leaves nixpkgs, so treat it as
+  something to bump rather than something to forget;
+  `languages.dotnet.package` is the knob.
+- **Everything here evaluates free.** If you add an unfree package, put
+  `allowUnfree: true` at the top of `devenv.yaml`.
+- **`DOTNET_CLI_TELEMETRY_OPTOUT` and `DOTNET_NOLOGO`** keep the SDK from
+  phoning home and from printing the first-run banner (and writing its
+  `~/.dotnet` sentinel) the first time it runs.
+- **`devenv.lock` is not shipped; `devenv update` writes it and you commit it.**
+  Write it early. `devenv.yaml` declares one input, but devenv adds *itself* as
+  a second and the lock pins both — until then devenv's own modules float, and
+  the environment can change behaviour with no edit by you.
+- **For editing `devenv.nix` itself, use `devenv lsp`.** It starts nixd already
+  configured for this file, using the nixd bundled inside the devenv binary —
+  so there is nothing to add to `packages`, and `devenv lsp --print-config`
+  shows what it hands nixd.
+- **There is no `nix fmt` here.** A flake template gets a `formatter` output;
+  this one has no flake to hang it on. `fantomas` covers the F# side,
+  `dotnet format` the C# side, and devenv can run git hooks — see
+  [devenv.sh/git-hooks](https://devenv.sh/git-hooks/).
