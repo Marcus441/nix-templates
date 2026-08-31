@@ -72,9 +72,10 @@
 
     dotnet = {
       description = "Dev environment for .NET, with F# tooling";
+      kind = "devenv";
       tier = "shell";
       smoke = ["dotnet --version"];
-      reason = "packages.default needs a project scaffolded by the user, plus a generated nix/deps.json";
+      reason = "ships no project — dotnet new scaffolds it, so there is nothing for enterTest to build";
     };
 
     dotnet-react-postgres = {
