@@ -28,13 +28,17 @@ the `build` tier runs `nix build .#default`. So the harness's
 the devenv one — a green tier testing the road not taken, which is the §3
 failure mode exactly.
 
-**Superseded on this point — see `docs/decisions/devenv-templates.md`.** The
-paragraph below deferred the decision; the trigger it was waiting for arrived,
-and devenv is now a `kind` in the registry. The cost estimate turned out to be
-accurate and was paid deliberately. Everything else in this document stands,
-including the two rejections at the end, and the enforcement note below is now
-conditional: `flake-inputs` greps the five frameworks in `kind = "flake"`
-templates only.
+**Superseded on this point — see `docs/decisions/devenv-templates.md`, then
+`docs/decisions/devenv-only.md`.** The paragraph below deferred the decision;
+the trigger it was waiting for arrived, and devenv became a `kind` in the
+registry — the cost estimate turned out to be accurate and was paid
+deliberately, scoped to the templates that chose it. `devenv-only.md` then
+removed the scope along with the flake kind: every template is native devenv,
+so the **Breaks** paragraph above is no longer one option's price but the
+repository's accepted posture. The hybrid rejection above still stands on its
+own merits — `template-hygiene` now forbids any template shipping a
+`flake.nix` — and the enforcement note at the end describes a check,
+`flake-inputs`, that is gone with the kind it guarded.
 
 **Rejected: first-class devenv support in the registry.** It is new machinery,
 not a style change: a `kind` field in `meta/registry.nix`; `flake-inputs`,

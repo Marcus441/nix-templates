@@ -1,5 +1,12 @@
 # Templates iterate systems without flake-utils
 
+**Superseded — see `docs/decisions/devenv-only.md`.** This document's subject
+has left the repository: with the flake kind retired there are no flake
+templates, so no template carries `forAllSystems`, an input list, or a
+`systems` line for `flake-inputs` to grep — and that check is gone with them.
+Kept for the reasoning, which a returning flake kind would have to re-answer:
+an explicit system list in the artifact, not a helper's fixed one.
+
 **Why:** every template used to carry `flake-utils` purely to call
 `eachDefaultSystem`. That is a second input the consumer fetches and locks
 before their first `nix develop`, in exchange for one function that

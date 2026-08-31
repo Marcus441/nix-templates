@@ -22,7 +22,9 @@ minutes.
 **The split survived a second template kind.** A `checks` derivation cannot
 start a postgres any more than it can run `nix develop` — no network, no
 daemon — so `kind = "devenv"` went into `scripts/test-template.sh` beside the
-flake path rather than into `meta/checks.nix`. What went into `checks.nix` was
+flake path rather than into `meta/checks.nix` — and since
+`docs/decisions/devenv-only.md` retired the flake kind, the devenv path is the
+only path there. What went into `checks.nix` was
 the part that only reads sources: which files a kind must ship, and the nixpkgs
 spelling in `devenv.yaml`.
 

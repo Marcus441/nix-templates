@@ -28,6 +28,16 @@ Inv. 4 and Inv. 5, cost an impure evaluation, and deliver none of the supervised
 services it was reached for. So a devenv template is *native* devenv:
 `devenv.nix` plus `devenv.yaml`, and **no `flake.nix` at all**.
 
+**Superseded on the scoping — see `docs/decisions/devenv-only.md`.** The
+paragraph below accepts the consumer cost as "scoped: paid only by someone who
+inits a `kind = "devenv"` template". The flake kind is retired, so the scope
+is gone: every template requires devenv and the cost is universal. The three
+smaller costs went the same way — `tier = "build"` means `devenv test` alone,
+a `systems` claim is CI-matrix-enforced repo-wide, and the two-input drift
+surface is now every template's. The front-end deferral under "Unchanged"
+below was also reversed, for the two full-stack templates only —
+`docs/decisions/fullstack-monorepo-layout.md`.
+
 **Breaks:** the repository's one-sentence description of itself. It is no longer
 eleven standalone flakes; it is eleven of those and a second kind that a stock
 Nix install cannot run. `devenv.md`'s central objection — "the consumer pays for
