@@ -10,15 +10,14 @@
 #
 # This is the ONLY thing that proves a template works. `nix flake check`
 # validates this repository's flake and the shape of the templates output; it
-# never evaluates a template's own flake.
+# never runs a template's environment.
 #
-# What each tier runs depends on the template's `kind` (CLAUDE.md 1.4):
+# What each tier runs (CLAUDE.md 3):
 #
-#   kind = "flake"    nix flake check --no-build / nix develop / nix build
-#   kind = "devenv"   devenv info / devenv shell -- / devenv test
+#   eval / shell / build    devenv info / devenv shell -- / devenv test
 #
-# The devenv path starts real processes, so it tears them down before deleting
-# the work directory, and on an interrupt too.
+# Templates can start real processes, so the script tears them down before
+# deleting the work directory, and on an interrupt too.
 #
 # It has to be a script rather than a check because a build sandbox has no
 # network and recursive-nix is not enabled, so a derivation cannot run
@@ -148,16 +147,14 @@ remove_tree() {
   done
 }
 
-# The flake path has nothing to clean up beyond a directory, so this script has
-# never needed a trap. devenv starts processes, and an interrupt between `up`
-# and `down` leaves them running with their only handle inside a directory the
-# shell is about to forget.
+# devenv starts processes, and an interrupt between `up` and `down` leaves them
+# running with their only handle inside a directory the shell is about to
+# forget.
 current_work=""
-current_kind=""
 current_runtime=""
 # shellcheck disable=SC2317  # reached via trap
 on_exit() {
-  if [ -n "$current_work" ] && [ "$current_kind" = "devenv" ] && [ -n "$DEVENV_BIN" ]; then
+  if [ -n "$current_work" ] && [ -n "$DEVENV_BIN" ]; then
     (cd "$current_work" && run_devenv processes down) >/dev/null 2>&1 || true
   fi
   # The runtime dir holds the process-manager socket and a 0700 netrc, and it
@@ -171,11 +168,10 @@ trap on_exit EXIT
 trap 'on_exit; exit 130' INT TERM
 
 if [ -n "${list:-}" ]; then
-  printf '%-24s %-7s %-6s %-7s %-7s %s\n' template kind tier locked unfree reason
+  printf '%-24s %-6s %-7s %s\n' template tier locked reason
   for n in "${names[@]}"; do
-    printf '%-24s %-7s %-6s %-7s %-7s %s\n' \
-      "$n" "$(field "$n" kind)" "$(field "$n" tier)" "$(field "$n" locked)" \
-      "$(field "$n" unfree)" "$(field "$n" 'reason // ""')"
+    printf '%-24s %-6s %-7s %s\n' \
+      "$n" "$(field "$n" tier)" "$(field "$n" locked)" "$(field "$n" 'reason // ""')"
   done
   exit 0
 fi
@@ -183,8 +179,8 @@ fi
 # eval < shell < build
 rank() { case "$1" in eval) echo 0 ;; shell) echo 1 ;; build) echo 2 ;; *) echo 0 ;; esac }
 
-# Enough to carry a nix build failure's actual error, short enough that eleven
-# of them do not bury the summary. `--keep` prints the path to the whole thing.
+# Enough to carry a failure's actual error, short enough that fourteen of them
+# do not bury the summary. `--keep` prints the path to the whole thing.
 LOG_TAIL=${LOG_TAIL:-40}
 
 pass=0
@@ -201,8 +197,6 @@ for name in "${names[@]}"; do
     tier=$ceiling
   fi
 
-  kind=$(field "$name" kind)
-
   if ! jq -e --arg n "$name" --arg s "$SYSTEM" \
     '.[$n].systems | index($s)' "$registry" >/dev/null; then
     printf '%-24s %-6s SKIP  (not built for %s)\n' "$name" "$tier" "$SYSTEM"
@@ -215,7 +209,6 @@ for name in "${names[@]}"; do
   # instead, which both agree on.
   work=$(mktemp -d "${TMPDIR:-/tmp}/tmpl-$name-XXXXXX")
   current_work="$work"
-  current_kind="$kind"
 
   # Beside the work dir, never inside it: the template copy gets `git add -A`d
   # and its own flake would then see a stray file. Each step overwrites it, so
@@ -250,16 +243,6 @@ for name in "${names[@]}"; do
   mkdir -p "$HOME"
   chmod 700 "$runtime"
 
-  # No registry entry sets `unfree` today — every template that needs it sets
-  # config.allowUnfree in its own flake — so this array is normally empty, and
-  # bash before 4.4 treats "${empty[@]}" as an unbound variable under `set -u`.
-  # Hence ${impure[@]+"${impure[@]}"} at each use; macOS runners are bash 3.2.
-  impure=()
-  if [ "$(field "$name" unfree)" = "true" ]; then
-    export NIXPKGS_ALLOW_UNFREE=1
-    impure=(--impure)
-  fi
-
   step=""
   ok=1
   (
@@ -279,74 +262,47 @@ for name in "${names[@]}"; do
     git -C "$work" add -A >/dev/null 2>&1
   fi
 
-  if [ "$kind" = "devenv" ]; then
-    if [ $ok -eq 1 ] && ! ensure_devenv; then
+  if [ $ok -eq 1 ] && ! ensure_devenv; then
+    ok=0
+    step="nix build --inputs-from $REPO nixpkgs#devenv"
+  fi
+
+  if [ $ok -eq 1 ]; then
+    if ! (cd "$work" && run_devenv info) >"$log" 2>&1; then
       ok=0
-      step="nix build --inputs-from $REPO nixpkgs#devenv"
-    fi
-
-    if [ $ok -eq 1 ]; then
-      if ! (cd "$work" && run_devenv info) >"$log" 2>&1; then
-        ok=0
-        step="devenv info"
-      fi
-    fi
-
-    if [ $ok -eq 1 ] && [ "$(rank "$tier")" -ge 1 ]; then
-      while read -r cmd; do
-        [ -n "$cmd" ] || continue
-        # The `--` is load-bearing: -c is a *global* devenv option (--clean), so
-        # `devenv shell bash -c "…"` would scrub the environment being tested.
-        if ! (cd "$work" && run_devenv shell -- bash -c "$cmd") </dev/null >"$log" 2>&1; then
-          ok=0
-          step="devenv shell -- bash -c \"$cmd\""
-          break
-        fi
-      done < <(jq -r --arg n "$name" '.[$n].smoke[]?' "$registry")
-    fi
-
-    if [ $ok -eq 1 ] && [ "$(rank "$tier")" -ge 2 ]; then
-      # Builds the environment, starts the declared processes, runs enterTest,
-      # stops them. This is the devenv analogue of `nix build .#default` — the
-      # rung where the template's own checks run — but it is not sandboxed and
-      # it does have network. CLAUDE.md 3.
-      if ! (cd "$work" && run_devenv test) >"$log" 2>&1; then
-        ok=0
-        step="devenv test"
-      fi
-    fi
-
-    # Before the rm -rf below, not in the cleanup branch: `processes down` finds
-    # the supervisor through $work/.devenv, so deleting the directory first
-    # orphans a daemon with no handle left to stop it. `devenv test` stops what
-    # it started, but a run that failed partway through may not have.
-    (cd "$work" && run_devenv processes down) >/dev/null 2>&1 || true
-  else
-    if [ $ok -eq 1 ]; then
-      if ! (cd "$work" && nix flake check --no-build ${impure[@]+"${impure[@]}"}) >"$log" 2>&1; then
-        ok=0
-        step="nix flake check --no-build"
-      fi
-    fi
-
-    if [ $ok -eq 1 ] && [ "$(rank "$tier")" -ge 1 ]; then
-      while read -r cmd; do
-        [ -n "$cmd" ] || continue
-        if ! (cd "$work" && nix develop ${impure[@]+"${impure[@]}"} --command bash -c "$cmd") </dev/null >"$log" 2>&1; then
-          ok=0
-          step="nix develop --command $cmd"
-          break
-        fi
-      done < <(jq -r --arg n "$name" '.[$n].smoke[]?' "$registry")
-    fi
-
-    if [ $ok -eq 1 ] && [ "$(rank "$tier")" -ge 2 ]; then
-      if ! (cd "$work" && nix build --no-link ${impure[@]+"${impure[@]}"} '.#default') >"$log" 2>&1; then
-        ok=0
-        step="nix build .#default"
-      fi
+      step="devenv info"
     fi
   fi
+
+  if [ $ok -eq 1 ] && [ "$(rank "$tier")" -ge 1 ]; then
+    while read -r cmd; do
+      [ -n "$cmd" ] || continue
+      # The `--` is load-bearing: -c is a *global* devenv option (--clean), so
+      # `devenv shell bash -c "…"` would scrub the environment being tested.
+      if ! (cd "$work" && run_devenv shell -- bash -c "$cmd") </dev/null >"$log" 2>&1; then
+        ok=0
+        step="devenv shell -- bash -c \"$cmd\""
+        break
+      fi
+    done < <(jq -r --arg n "$name" '.[$n].smoke[]?' "$registry")
+  fi
+
+  if [ $ok -eq 1 ] && [ "$(rank "$tier")" -ge 2 ]; then
+    # Builds the environment, starts the declared processes, runs enterTest,
+    # stops them. This is the devenv analogue of `nix build .#default` — the
+    # rung where the template's own checks run — but it is not sandboxed and
+    # it does have network. CLAUDE.md 3.
+    if ! (cd "$work" && run_devenv test) >"$log" 2>&1; then
+      ok=0
+      step="devenv test"
+    fi
+  fi
+
+  # Before the rm -rf below, not in the cleanup branch: `processes down` finds
+  # the supervisor through $work/.devenv, so deleting the directory first
+  # orphans a daemon with no handle left to stop it. `devenv test` stops what
+  # it started, but a run that failed partway through may not have.
+  (cd "$work" && run_devenv processes down) >/dev/null 2>&1 || true
 
   broken=$(field "$name" broken)
 
@@ -384,7 +340,6 @@ for name in "${names[@]}"; do
   # `cd $work && devenv test`, which starts the processes again anyway, and a
   # --keep in CI would otherwise leak them.
   current_work=""
-  current_kind=""
   current_runtime=""
 done
 
