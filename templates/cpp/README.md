@@ -1,13 +1,18 @@
 # cpp
 
-Dev environment for C/C++ — C++23 with CMake, build presets and sanitizers, and
-no dependency to fetch.
+devenv environment for C/C++ — C++23 with CMake, build presets and sanitizers,
+and no dependency to fetch.
 
 ```bash
 nix flake init -t 'github:Marcus441/nix-templates#cpp'
-git init && git add -A     # flakes see only tracked files
-nix develop                # or: direnv allow
+git init && git add -A
+devenv shell               # or: direnv allow
 ```
+
+## Requirements
+
+**devenv, installed** — https://devenv.sh. There is no `flake.nix` here, so
+`nix develop` does not apply. `nix profile install nixpkgs#devenv` is enough.
 
 ## What you get
 
@@ -31,7 +36,7 @@ does.
 
 ## Building
 
-With CMake presets, inside the dev shell:
+With CMake presets, inside the shell:
 
 ```bash
 cmake --preset default
@@ -39,11 +44,12 @@ cmake --build --preset debug        # Debug, sanitizers on
 cmake --build --preset release      # optimized, no sanitizers
 ```
 
-Or build the Nix package, which compiles in a sandbox and runs the tests:
+The build-shaped command is `devenv test`: it builds the environment, then
+configures, builds and tests the `release` preset in one run. That is the
+claim CI proves; the Debug/ASan cycle stays a local loop.
 
 ```bash
-nix build
-nix run                             # runs the built binary
+devenv test
 ```
 
 ## Testing
@@ -53,7 +59,7 @@ ctest --preset debug                # under ASan/UBSan
 ctest --preset release
 ```
 
-`nix build` runs the same suite in its check phase.
+`devenv test` runs the `release` preset's suite.
 
 ## Linting
 
@@ -80,23 +86,26 @@ cpplint src/*.cpp include/*.hpp
   per profile instead, which is what you want as soon as you need TSan.
 - **The Clang toolchain is `pkgs.llvmPackages`, the version nixpkgs defaults to
   on your platform**, rather than a pinned one. That is the version nixpkgs
-  actually builds and caches everywhere, so the dev shell comes from the binary
-  cache instead of compiling a compiler. Pin it if you need to:
-
-  ```nix
-  pkgs.llvmPackages_21.stdenv
-  ```
-
-  Be aware of what pinning costs on macOS. The darwin stdenv tracks a recent
-  libc++ and Apple SDK, and an older LLVM's `compiler-rt` does not always
-  compile against them — pinning LLVM 18 here used to make `nix develop` build
-  LLVM from source and then fail outright on `aarch64-darwin`. If you pin,
-  check it on every platform your `systems` list claims.
-- `CPPLINT.cfg` only means something because `cpplint` is in the dev shell; its
+  actually builds and caches everywhere, so the shell comes from the binary
+  cache instead of compiling a compiler. Pin it by swapping `pkgs.llvmPackages`
+  for a versioned set — `pkgs.llvmPackages_21` — everywhere it appears in
+  `devenv.nix`'s `packages`. Be aware of what pinning costs on macOS: the
+  darwin toolchain tracks a recent libc++ and Apple SDK, and an older LLVM's
+  `compiler-rt` does not always compile against them — pinning LLVM 18 here
+  used to make entering the shell build LLVM from source and then fail outright
+  on `aarch64-darwin`. If you pin, check it on every platform you build on.
+- `CPPLINT.cfg` only means something because `cpplint` is in `packages`; its
   `linelength` is kept in step with `.clang-format`'s `ColumnLimit` and
   `.editorconfig`'s `max_line_length`.
 - `.envrc` adds `build/Debug` to `PATH`. The `Ninja Multi-Config` generator
   writes each configuration to its own subdirectory, so the binary is at
   `build/Debug/myproject`, not `build/myproject` — add `build/Release` too if
   you want to run optimized builds by bare name.
-- `nix fmt` formats `flake.nix` with alejandra.
+- **`devenv.lock` is not shipped; `devenv update` writes it and you commit
+  it.** Write it early. `devenv.yaml` declares one input, but devenv adds
+  *itself* as a second and the lock pins both — until then devenv's own modules
+  float as well as nixpkgs, and the environment can change with no edit by you.
+- **For editing `devenv.nix` itself, use `devenv lsp`.** It starts nixd already
+  configured for this file, using the nixd bundled inside the devenv binary —
+  so there is nothing to add to `packages`, and `devenv lsp --print-config`
+  shows what it hands nixd.
