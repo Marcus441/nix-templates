@@ -110,6 +110,7 @@
 
     ts-node = {
       description = "Dev environment for Node.js with TypeScript";
+      kind = "devenv";
       tier = "build";
       smoke = ["node --version" "npm --version"];
     };
