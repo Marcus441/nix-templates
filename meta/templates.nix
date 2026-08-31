@@ -51,6 +51,7 @@
 
     cpp-simple = {
       description = "Dev environment for learning C++ with a plain Makefile";
+      kind = "devenv";
       tier = "build";
       smoke = ["make --version" "clangd --version" "cpplint --version"];
     };
