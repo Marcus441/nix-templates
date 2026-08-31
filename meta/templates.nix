@@ -40,6 +40,7 @@
 
     cpp-prod = {
       description = "Dev environment for production C/C++";
+      kind = "devenv";
       tier = "build";
       smoke = ["cmake --version" "clangd --version" "clang-tidy --version" "gcovr --version"];
     };
