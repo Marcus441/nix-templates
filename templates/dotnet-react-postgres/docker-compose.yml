@@ -1,0 +1,48 @@
+# DEPLOYMENT PARITY ONLY. Local development runs under devenv — `devenv up`
+# owns postgres, the API and the vite dev server, and `devenv test` proves
+# them. This file exists so the images in infra/docker can be exercised the
+# way a deployment would run them; it is never part of the dev loop.
+#
+#   docker compose up --build    # web on :8080, api on :5080
+
+services:
+  postgres:
+    image: postgres:17
+    environment:
+      POSTGRES_DB: app
+      POSTGRES_USER: app
+      POSTGRES_PASSWORD: app
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U app -d app"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+
+  api:
+    build:
+      context: .
+      dockerfile: infra/docker/api.Dockerfile
+    environment:
+      PGHOST: postgres
+      PGDATABASE: app
+      PGUSER: app
+      PGPASSWORD: app
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - "5080:5080"
+
+  web:
+    build:
+      context: .
+      dockerfile: infra/docker/web.Dockerfile
+    depends_on:
+      - api
+    ports:
+      - "8080:80"
+
+volumes:
+  postgres-data:

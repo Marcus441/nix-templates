@@ -1,0 +1,37 @@
+name: backend
+
+# Path-filtered fast feedback for the .NET half of the monorepo. ci.yml still
+# runs `devenv test` on everything — this job only shortens the loop when a
+# change cannot have touched the frontend.
+on:
+  push:
+    branches: [main]
+    paths:
+      - "apps/api/**"
+      - "packages/contracts/**"
+      - ".github/workflows/backend.yml"
+  pull_request:
+    paths:
+      - "apps/api/**"
+      - "packages/contracts/**"
+      - ".github/workflows/backend.yml"
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  build-and-test:
+    name: dotnet build + test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: DeterminateSystems/nix-installer-action@main
+      - uses: cachix/cachix-action@v16
+        with:
+          name: devenv
+      - run: nix profile install nixpkgs#devenv
+      # Inside the devenv shell so the SDK is the same one `devenv up` uses,
+      # not whatever the runner image happens to carry.
+      - run: devenv shell -- dotnet build apps/api/Api.sln
+      - run: devenv shell -- dotnet test apps/api/Api.sln --no-build
