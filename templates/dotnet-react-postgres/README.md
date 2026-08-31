@@ -1,13 +1,14 @@
 # dotnet-react-postgres
 
-devenv environment for .NET and React with a local PostgreSQL. The environment
-gives you the SDK, Node and a supervised database; you scaffold the React front
-end yourself with `npm create vite` after entering it.
+devenv environment for a .NET + React + PostgreSQL monorepo. The environment
+gives you the SDK, Node, a supervised database and both dev servers; the code
+that ships — one `items` resource end to end — is the smallest thing that
+proves the whole chain, and is meant to be replaced.
 
 ```bash
 nix flake init -t 'github:Marcus441/nix-templates#dotnet-react-postgres'
-git init && git add -A
-devenv shell               # or: direnv allow
+./scripts/setup.sh         # git init + add, then npm install inside the env
+devenv up                  # or: direnv allow, then devenv up
 ```
 
 ## Requirements
@@ -15,68 +16,76 @@ devenv shell               # or: direnv allow
 **devenv, installed** — https://devenv.sh. There is no `flake.nix` here, so
 `nix develop` does not apply. `nix profile install nixpkgs#devenv` is enough.
 
+## Layout
+
+```
+apps/api/                  .NET backend: Api.sln, Domain/Application/
+                           Infrastructure/Api projects, xunit tests
+apps/web/                  React + TypeScript + Vite, one page over /items
+packages/contracts/        generated TS types for the API — committed
+scripts/                   setup.sh, generate-contracts.sh
+docs/                      architecture.md, getting-started.md
+infra/docker/              deployment-parity images for docker-compose.yml
+```
+
+`docs/architecture.md` explains the shape; the notes below explain the
+environment.
+
 ## What you get
 
-- **.NET 10 SDK**, pinned to match the `dotnet` template in this collection
-- **Node and npm** from nixpkgs, with the TypeScript language server wired up
-  (`languages.javascript.package` is the knob if you need a specific major)
-- **`roslyn-ls`**, Microsoft's own C# language server, on every platform
-- **PostgreSQL**, started and stopped by devenv rather than by you, with a
-  database `app` created on first start and no TCP port to collide with a
-  server you already run
-- **two processes** — `api` waits for postgres to be *ready*, and `web` waits
-  for `api`
-- **a `/health` endpoint that actually queries the database**, so `devenv test`
-  proves the whole chain rather than proving `dotnet` is on `PATH`
-
-What you do *not* get is a front end. `npm create vite` writes a better one than
-this template could keep current — see step 1.
+- **.NET 10 SDK** and **roslyn-ls**, Microsoft's own C# language server, on
+  every platform
+- **Node and npm** from nixpkgs, TypeScript language server wired up, and
+  `npm install` run for the workspaces on shell entry
+- **PostgreSQL**, started and stopped by devenv, database `app` created on
+  first start, unix socket only — no TCP port to collide with a server you
+  already run
+- **three processes** — postgres, then the API once postgres is ready, then
+  the vite dev server once the API answers `/health`
+- **an end-to-end test** — `devenv test` checks `/health` against the
+  database, POSTs an item and reads it back
 
 ## Building
 
-### 1. Scaffold the front end
+devenv owns the dev loop; docker never enters it.
 
 ```bash
-npm create vite@latest web -- --template react-ts
-npm --prefix web install
-```
-
-`web/` is where `languages.javascript.directory` and the `web` process already
-point, so nothing in `devenv.nix` needs changing. Until this runs, the `web`
-process prints that hint and exits — everything else works without it.
-
-### 2. Run it
-
-```bash
-devenv up                  # postgres, then api, then web; Ctrl-C stops all
+devenv up                  # postgres → api (:5080) → vite; Ctrl-C stops all
 devenv up -d               # or background it
 devenv processes down
+devenv test                # the build-shaped proof: services up, API exercised
 ```
 
-The API comes up on <http://127.0.0.1:5080> and Vite on its own port. Point the
-front end at the API with a `vite.config.ts` proxy, or set `VITE_API_URL`.
-
-### 3. Make it yours
-
-Delete `api/Program.cs`'s `/health` endpoint once you have real ones, and
-replace `enterTest` in `devenv.nix` with assertions about them.
-
-## Testing
+The usual per-half commands work inside the shell too:
 
 ```bash
-devenv test
+dotnet build apps/api/Api.sln && dotnet test apps/api/Api.sln
+npm run typecheck --workspace apps/web
+npm run test --workspace apps/web
+npm run build --workspace apps/web
 ```
 
-Builds the environment, starts postgres and the API, waits for the API's
-readiness probe, then asserts that `/health` returns `"db":1` — which it can
-only do by connecting to PostgreSQL and running `SELECT 1`. Stops everything
-afterwards, including on failure.
+`docker-compose.yml` and `infra/docker/` are the **deployment-parity artifact
+only**: `docker compose up --build` runs the published images the way a
+deployment would (nginx serving the built SPA, proxying to the API). Use it to
+answer "does the artifact run", never for development.
+
+## Contracts
+
+The C# endpoints are the single source of the API surface. `src/Api` serves an
+OpenAPI document at `/openapi/v1.json`; `./scripts/generate-contracts.sh`
+(inside the shell, with the environment up) turns it into
+`packages/contracts/src/api.d.ts` via `openapi-typescript`; `apps/web` imports
+its `Item` type from `@app/contracts`. The file is committed so the frontend
+typechecks offline and API changes show up as reviewable diffs — never edit it
+by hand, and never duplicate a type into `apps/web`.
 
 ## CI
 
-`.github/workflows/ci.yml` runs `devenv test` on Linux and macOS. One job,
-where the flake templates in this collection need two: `devenv test` starts the
-services, so it covers what a sandboxed `nix build` cannot.
+Three payload workflows for the repository you generate: `ci.yml` runs
+`devenv test` on Linux and macOS on every change; `backend.yml` and
+`frontend.yml` are path-filtered fast lanes that build and test only the half
+a change touched, inside the same devenv shell as local work.
 
 ## Notes
 
@@ -85,18 +94,21 @@ services, so it covers what a sandboxed `nix build` cannot.
   `nix develop --no-pure-eval`. Supervised services are the entire reason to
   reach for devenv, so that shape pays every cost and delivers none of the
   benefit.
+- **Why there is no `global.json`.** Nix pins the SDK — `devenv.nix` names
+  `sdk_10_0`, so a second pin would only be a second thing to keep in step.
+- **Why there is no `package-lock.json`.** The template ships unlocked by
+  policy, so your first `npm install` resolves current versions — commit the
+  lockfile it writes (setup.sh reminds you) and you are locked from then on.
 - **PostgreSQL is socket-only and its environment is already set.** devenv
-  exports `PGHOST`, `PGPORT` and `PGDATA`; do not set them yourself. `PGHOST` is
-  a socket *directory*, which is why `Program.cs` passes it straight to Npgsql —
-  a path-valued `Host` is how Npgsql spells "unix socket". `psql -d app` works
-  in the shell with no arguments.
-- **`Npgsql` is the one floating dependency here.** `api.csproj` asks for
-  `9.0.*` rather than an exact version, so `dotnet restore` takes the current
-  patch. Pin it the day that stops being what you want.
-- **`processes.web` exits 0 rather than failing when `web/` is missing.**
-  `devenv test` only treats a process as failed when it exits *non*-zero, so the
-  template is green before you scaffold and stays green after. That is why the
-  hint is an `echo` and not an error.
+  exports `PGHOST`, `PGPORT` and `PGDATA`; do not set them yourself. `PGHOST`
+  is a socket *directory*, which is why `Infrastructure/Database.cs` passes it
+  straight to Npgsql — a path-valued `Host` is how Npgsql spells "unix
+  socket". The same `PG*` variables carry hostname and credentials under
+  docker-compose. `psql -d app` works in the shell with no arguments.
+- **Dependencies float on purpose.** `Npgsql` and `Microsoft.AspNetCore.OpenApi`
+  use `*` patch ranges, the npm packages use `^` ranges. First restore/install
+  takes current versions; the NuGet side has no committed lock, so pin exact
+  versions the day floating stops being what you want.
 - **`after` waits for readiness, not for start.** `api` declares
   `ready.http.get`, so `web` — and `enterTest` — wait until the API actually
   answers rather than until its process exists.
@@ -104,18 +116,15 @@ services, so it covers what a sandboxed `nix build` cannot.
   Write it early. `devenv.yaml` declares one input, but devenv adds *itself* as
   a second and the lock pins both — until then devenv's own service modules
   float, and the environment can change behaviour with no edit by you.
-- **The .NET SDK is pinned to `sdk_10_0`** rather than tracking devenv's default,
-  which is .NET 8, so that this template and the `dotnet` template agree on what
-  current means. The two spell the same major differently — `sdk_10_0` here,
-  `dotnetCorePackages.dotnet_10.sdk` there — because devenv wants an SDK
-  derivation and `buildDotnetModule` wants the wrapper attribute. A pinned major
-  eventually leaves nixpkgs, so treat it as something to bump rather than
-  something to forget.
+- **The .NET SDK is pinned to `sdk_10_0`** rather than tracking devenv's
+  default, which is .NET 8, so that this template and the `dotnet` template
+  agree on what current means. A pinned major eventually leaves nixpkgs, so
+  treat it as something to bump rather than something to forget.
 - **The C# language server is `roslyn-ls`, not devenv's default.** devenv
   defaults `languages.dotnet.lsp.package` to `csharp-ls`, which is a community
   project; `roslyn-ls` is the server behind Microsoft's own C# extension. The
-  binary is `Microsoft.CodeAnalysis.LanguageServer` — point your editor at that,
-  with `--stdio`.
+  binary is `Microsoft.CodeAnalysis.LanguageServer` — point your editor at
+  that, with `--stdio`.
 
   `lsp.enable` is set explicitly for a reason that is not obvious: its default
   is `availableOn <host> csharp-ls`, and `csharp-ls` declares
@@ -123,10 +132,16 @@ services, so it covers what a sandboxed `nix build` cannot.
   resolves to *false* and you get no C# server at all — and changing only
   `lsp.package` would not have fixed it, because the default is computed from
   `csharp-ls` whatever package you choose. `roslyn-ls` has no such exclusion.
-- **For editing `devenv.nix` itself, use `devenv lsp`.** It starts nixd already
-  configured for this file, using the nixd bundled inside the devenv binary —
-  so there is nothing to add to `packages`, and `devenv lsp --print-config`
-  shows what it hands nixd.
+- **The vite dev server proxies, the app fetches relative URLs.**
+  `apps/web/vite.config.ts` forwards `/items`, `/health` and `/openapi` to
+  `127.0.0.1:5080`, so there is no CORS configuration anywhere — and
+  `infra/docker/nginx.conf` repeats the same routes for the composed
+  deployment. Add new API prefixes in both places.
+- **For editing `devenv.nix` itself, use `devenv lsp`.** It starts nixd
+  already configured for this file, using the nixd bundled inside the devenv
+  binary — so there is nothing to add to `packages`, and
+  `devenv lsp --print-config` shows what it hands nixd.
 - **There is no `nix fmt` here.** A flake template gets a `formatter` output;
-  this one has no flake to hang it on. `dotnet format` covers the C# side, and
-  devenv can run git hooks — see [devenv.sh/git-hooks](https://devenv.sh/git-hooks/).
+  this one has no flake to hang it on. `dotnet format` covers the C# side,
+  vite's defaults cover the rest, and devenv can run git hooks — see
+  [devenv.sh/git-hooks](https://devenv.sh/git-hooks/).

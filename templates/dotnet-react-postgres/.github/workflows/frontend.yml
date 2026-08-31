@@ -1,0 +1,40 @@
+name: frontend
+
+# Path-filtered fast feedback for the React half of the monorepo. ci.yml still
+# runs `devenv test` on everything — this job only shortens the loop when a
+# change cannot have touched the backend.
+on:
+  push:
+    branches: [main]
+    paths:
+      - "apps/web/**"
+      - "packages/contracts/**"
+      - ".github/workflows/frontend.yml"
+  pull_request:
+    paths:
+      - "apps/web/**"
+      - "packages/contracts/**"
+      - ".github/workflows/frontend.yml"
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  build-and-test:
+    name: typecheck + test + build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: DeterminateSystems/nix-installer-action@main
+      - uses: cachix/cachix-action@v16
+        with:
+          name: devenv
+      - run: nix profile install nixpkgs#devenv
+      # `npm install`, not `npm ci`: the template ships no lockfile — once you
+      # have committed yours, switch this to `npm ci`. Inside the devenv shell
+      # so node is the same one `devenv up` uses.
+      - run: devenv shell -- npm install
+      - run: devenv shell -- npm run typecheck --workspace apps/web
+      - run: devenv shell -- npm run test --workspace apps/web
+      - run: devenv shell -- npm run build --workspace apps/web

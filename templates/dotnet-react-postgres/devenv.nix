@@ -13,7 +13,7 @@
   languages.javascript = {
     enable = true;
     npm.enable = true;
-    directory = "web";
+    npm.install.enable = true;
   };
 
   languages.typescript.enable = true;
@@ -29,7 +29,7 @@
   };
 
   processes.api = {
-    exec = "dotnet run --project api --urls http://127.0.0.1:5080";
+    exec = "dotnet run --project apps/api/src/Api --urls http://127.0.0.1:5080";
     after = ["devenv:processes:postgres"];
     ready.http.get = {
       port = 5080;
@@ -38,18 +38,14 @@
   };
 
   processes.web = {
-    exec = ''
-      if [ ! -f web/package.json ]; then
-        echo "no web/ yet - run: npm create vite@latest web -- --template react-ts"
-        exit 0
-      fi
-      exec npm --prefix web run dev
-    '';
+    exec = "npm run dev --workspace apps/web";
     after = ["devenv:processes:api"];
   };
 
   enterTest = ''
     wait_for_port 5080 600
     curl -sf http://127.0.0.1:5080/health | grep -q '"db":1'
+    curl -sf -X POST http://127.0.0.1:5080/items -H 'content-type: application/json' -d '{"name":"smoke"}'
+    curl -sf http://127.0.0.1:5080/items | grep -q smoke
   '';
 }
