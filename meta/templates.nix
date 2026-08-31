@@ -33,6 +33,7 @@
 
     cpp = {
       description = "Dev environment for C/C++";
+      kind = "devenv";
       tier = "build";
       smoke = ["cmake --version" "clangd --version"];
     };
