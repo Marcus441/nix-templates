@@ -14,10 +14,12 @@ not belong in one (CLAUDE.md Inv. 7).
 `flake.templates`:
 
 ```nix
-config.flake.templates =
-  lib.mapAttrs (_: t: {inherit (t) path description;}) config.templates
-  // {default = config.flake.templates.shell;};
+config.flake.templates = mapped // {default = mapped.${config.defaultTemplate};};
 ```
+
+where `mapped` is `lib.mapAttrs` over `config.templates`, projecting each entry
+down to `path`, `description` and a `welcomeText`, and `defaultTemplate`
+defaults to `"devenv"` — the stub is what a bare `nix flake init` copies.
 
 Never write `flake.templates` by hand — a template that exists only there gets
 no checks and no harness coverage, which is the whole failure mode this layer
@@ -33,28 +35,25 @@ error: template 'rust' has unsupported attribute 'tier'
 So the registry *has* to be a separate option projected down. Watch the naming:
 **`config.templates` is the registry, `config.flake.templates` is the output.**
 
-`default` is built by applying the projection to `config.templates.<name>`, not
-by reading `config.flake.templates.<name>` — reading the attrset you are
-simultaneously defining is an infinite recursion.
+`default` reads `mapped`, never `config.flake.templates.<name>` — reading the
+attrset you are simultaneously defining is an infinite recursion.
 
-`path` defaults to `../. + "/${name}"`, so the directory name **is** the
-template name. Set `path` explicitly only if that ever stops being true, and
-prefer renaming the directory.
+`path` defaults to `../templates + "/${name}"`, so the directory name **is**
+the template name. Set `path` explicitly only if that ever stops being true,
+and prefer renaming the directory.
 
 ## Fields
 
 | Field | Notes |
 | --- | --- |
 | `description` | Required. Shown by `nix flake show` and `nix flake init -t`. |
-| `kind` | `flake` \| `devenv` — which artifact the template ships, and therefore which commands prove it. Defaults to `flake`. CLAUDE.md Inv. 4. |
 | `tier` | `eval` \| `shell` \| `build` — CLAUDE.md §3. |
-| `smoke` | Commands run in the template's shell at tier ≥ `shell` — `nix develop`, or `devenv shell --`. Cheap and specific: `cargo --version`, not `cargo build`. |
-| `systems` | Defaults to the flake's `systems`. Narrow only with a `reason`. For `kind = "devenv"` this is the *only* place the claim lives — there is no artifact line to grep — so the CI matrix is the sole enforcement. |
-| `locked` | Ships a committed lock — `flake.lock`, or `devenv.lock` for `kind = "devenv"`. Must match `.gitignore` — CLAUDE.md §5. A `devenv.lock` covers *more* than the artifact suggests: devenv adds itself as a second input, so the lock pins the service modules too, and an unlocked devenv template floats on them. |
-| `unfree` | Not available for `kind = "devenv"` — it adds a `nix` flag the devenv path never runs. `checks.unfree-is-flake-only` rejects it at `nix flake check`; use `allowUnfree` in `devenv.yaml` instead. The harness exports `NIXPKGS_ALLOW_UNFREE=1` and adds `--impure`. Not needed when the template sets `config.allowUnfree` in its own `import nixpkgs`, which every template that needs it now does — so no entry sets this today. Prefer fixing the template over setting the flag: `--impure` is a cost the consumer pays too. |
+| `smoke` | Commands run in the template's shell at tier ≥ `shell`, via `devenv shell --`. Cheap and specific: `cargo --version`, not `cargo build`. |
+| `systems` | Defaults to the registry flake's `systems`. Narrow only with a `reason`. For every template this is the *only* place the claim lives — there is no artifact line to grep — so the CI matrix is the sole enforcement. |
+| `locked` | Ships a committed `devenv.lock`. Must match `.gitignore` — CLAUDE.md §5. A `devenv.lock` covers *more* than the artifact suggests: devenv adds itself as a second input, so the lock pins the service modules too, and an unlocked template floats on them. |
 | `broken` | Failure at this tier is expected and tracked. The harness reports XFAIL instead of FAIL, and reports **XPASS as a failure** if it starts working — so the flag cannot rot. |
 | `reason` | Required when `tier != "build"` or `systems` is narrowed. Say *why it cannot be proven further*, not what the tier is. |
-| `welcomeText` | Almost always leave unset. `standardWelcome` in `registry.nix` builds the post-init message from `description`, and one message across fifteen templates is the point. Set it only to say something that text cannot. |
+| `welcomeText` | Almost always leave unset. `standardWelcome` in `registry.nix` builds the post-init message from `description`, and one message across fourteen templates is the point. Set it only to say something that text cannot. |
 
 `broken` and a narrowed `systems` say different things and must not be
 substituted for each other. `systems = ["x86_64-linux"]` means *this template
@@ -66,16 +65,16 @@ no longer describing itself.
 
 Static only — see `.claude/rules/harness.md` for what that excludes.
 
-**Never interpolate a per-kind path unguarded.** `${root + "/${n}/flake.nix"}`
+**Never interpolate a template path unguarded.** `${root + "/${n}/devenv.yaml"}`
 throws at *eval* when the file is absent, and so does `builtins.readFile` on
-it — which takes `nix flake check` down for every
-template, while `nix flake init -t` and `nix build .#registry-json` keep
-working. The break lands on a consumer, not on whoever caused it. Iterate
-`flakeNames` / `devenvNames`, or guard with the `exists` helper. Prefer a
-pure-eval assertion over a `runCommand` when the fact is knowable from the
-registry (`reason-required` is one); use `runCommand` over a `lib.fileset` when
-it needs to read template sources, and scope the fileset so a README edit does
-not rebuild every check.
+it — which takes `nix flake check` down for every template rather than just the
+one at fault. Guard every source read with the `exists` helper in `checks.nix`,
+so a half-added template fails its own check, not the whole run. `nix flake
+show`, `nix flake init -t` and `nix build .#registry-json` are unaffected —
+none of them forces a check derivation. Prefer a pure-eval assertion over a
+`runCommand` when the fact is knowable from the registry (`reason-required` is
+one); use `runCommand` over a `lib.fileset` when it needs to read template
+sources, and scope the fileset so a README edit does not rebuild every check.
 
 Note `nix flake check` already validates `templates.<name>` as template
 definitions, so a dangling `path` is caught for free — do not reimplement it.

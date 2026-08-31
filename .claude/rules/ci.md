@@ -6,14 +6,17 @@ paths: ".github/workflows/*"
 
 Three things nothing else in the repo says.
 
-## `templates/*/.github/workflows/ci.yml` is not this repo's CI
+## `templates/*/.github/workflows/*.yml` is not this repo's CI
 
-Seven of them are **payload**. They ship inside a template so that projects
-generated from it inherit a working pipeline — `android-kotlin` an Android one,
-`dotnet-react-postgres` a `devenv test` one, the rest a `nix build` one. GitHub only runs workflows found at the
-repository root, so it has never executed here and never will. Moving it to the
+Twelve workflow files across eight templates are **payload**. They ship inside
+a template so that projects generated from it inherit a working pipeline —
+`android-kotlin` a Gradle-and-emulator one, the other seven an
+install-devenv-then-`devenv test` one, with `dotnet-react-postgres` and
+`go-react-postgres` adding path-filtered `backend.yml` and `frontend.yml`
+beside their `ci.yml`. GitHub only runs workflows found at the repository
+root, so none of them has ever executed here and never will. Moving one to the
 root would break every generated project and test nothing. Commit `11d22e0`
-moved it *into* the template deliberately.
+moved the android one *into* its template deliberately.
 
 ## The matrix comes from the registry
 
@@ -25,12 +28,6 @@ hand-maintained matrix is how a template silently stops being tested.
 from the `checks` output, and this repo's checks are static and say nothing
 about whether a template works. The `tier` decides *which commands run*, not
 just which attribute to build, so the matrix has to carry it.
-
-The matrix carries `kind` alongside `name` and `tier`. **Nothing reads it
-today** — the harness resolves devenv itself rather than needing an install
-step, and the cache key below hashes both kinds' files unconditionally rather
-than branching. It is carried so a per-kind step does not have to re-plumb the
-matrix, and so a red leg names its kind. Do not go looking for the consumer.
 
 The matrix has two dimensions: template × runner. Every entry in a template's
 `systems` produces a leg, so a system a template claims is a system something
@@ -51,11 +48,12 @@ empty. **Adding a system to a template's `systems` without a runner for it is
 how the repo goes back to claiming things nothing proves** — add the runner, or
 do not make the claim.
 
-**The cache key hashes both kinds' artifacts in one `hashFiles`.** That call
-returns `""` for a pattern matching nothing rather than failing, so a devenv
-leg keyed only on `flake.nix` would not go red — its key would quietly become a
-constant and stop invalidating when `devenv.nix` changed. Listing the files
-rather than `templates/{0}/*` keeps a README edit from churning the key.
+**The cache key hashes the template's `devenv.nix`, `devenv.yaml` and
+`devenv.lock` in one `hashFiles`.** `devenv.lock` is listed although no
+template ships one today: `hashFiles` returns `""` for a pattern matching
+nothing rather than failing, so the key simply starts covering the lock when a
+template locks. Listing the files rather than `templates/{0}/*` keeps a README
+edit from churning the key.
 
 Cache the `x86_64-linux` legs only. The Actions cache budget is 10 GB per
 repository and the `cpp`/`rust` closures are large; caching all three runners
@@ -81,4 +79,4 @@ tier.
 `cache.nixos.org`, so the cost is download, which the Actions store cache
 removes. Cachix would need a secret and would break fork PRs for no benefit.
 Keep `gc-max-store-size` set: the `cpp` and `rust` closures will otherwise
-exhaust the 10 GB per-repository cache budget across fifteen keys.
+exhaust the 10 GB per-repository cache budget across fourteen keys.
