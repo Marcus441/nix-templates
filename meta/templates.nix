@@ -99,6 +99,7 @@
 
     rust = {
       description = "Dev environment for a minimal production-ready Rust project";
+      kind = "devenv";
       tier = "build";
       smoke = ["cargo --version" "clippy-driver --version"];
     };

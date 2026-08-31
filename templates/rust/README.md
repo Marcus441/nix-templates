@@ -1,25 +1,31 @@
 # rust
 
-Dev environment for a minimal production-ready Rust project.
+devenv environment for a minimal production-ready Rust project.
 
 ```bash
 nix flake init -t 'github:Marcus441/nix-templates#rust'
-git init && git add -A     # flakes see only tracked files
-nix develop                # or: direnv allow
+git init && git add -A
+devenv shell               # or: direnv allow
 ```
+
+## Requirements
+
+**devenv, installed** — https://devenv.sh. There is no `flake.nix` here, so
+`nix develop` does not apply. `nix profile install nixpkgs#devenv` is enough.
 
 ## What you get
 
-- **Cargo** with a tuned release profile (LTO, single codegen unit, stripped)
-- **clippy**, **rustfmt**, **rust-analyzer** and a debugger in the dev shell —
-  `gdb` on Linux, `lldb` on macOS, since gdb has no aarch64-darwin target
+- **the Rust toolchain** via `languages.rust.enable` — cargo, rustc, clippy,
+  rustfmt and rust-analyzer, all from one nixpkgs
+- a **debugger** — `gdb` on Linux, `lldb` on macOS, since gdb has no
+  aarch64-darwin target
+- a **tuned release profile** in `Cargo.toml` (LTO, single codegen unit,
+  stripped)
 - a **`[lints]` policy** in `Cargo.toml`: `unsafe_code` forbidden, clippy's
   pedantic group at warn, `unwrap`/`expect` flagged
 - **pkg-config** wired in for crates that link system C libraries
-- a `packages.default` built by `buildRustPackage`, with `cargo test` running in
-  its check phase
-- a **GitHub Actions workflow** that builds on Linux and macOS and runs clippy
-  with `-D warnings`
+- a **GitHub Actions workflow** that runs `devenv test` on Linux and macOS and
+  clippy with `-D warnings`
 
 ## Building
 
@@ -28,12 +34,8 @@ cargo build             # debug
 cargo build --release   # optimized production binary
 ```
 
-Or build the Nix package, which compiles in a sandbox and runs the tests:
-
-```bash
-nix build
-nix run                 # runs the built binary
-```
+The build-shaped proof is `devenv test`, which builds the environment and runs
+`cargo test` inside it — the same thing CI holds this template to.
 
 ## Testing
 
@@ -43,19 +45,27 @@ cargo clippy
 cargo fmt
 ```
 
+## CI
+
+`.github/workflows/ci.yml` runs `devenv test` on Linux and macOS, and clippy
+and rustfmt as a separate Linux job. The split is deliberate: a clippy release
+that adds lints should redden the lint job, not the proof that the environment
+works.
+
 ## Notes
 
-- **Rename the project in `Cargo.toml` alone.** The flake reads `[package]` out
-  of it with `builtins.fromTOML`, so `pname`, `version` and `meta.mainProgram`
-  all follow — and `mainProgram`, which is what makes `nix run` work, cannot
-  drift from the binary Cargo actually produces.
+- **Rename the project in `Cargo.toml` alone.** Nothing else here reads the
+  crate name — the binary, `cargo test` and CI all follow it.
 - `Cargo.lock` is committed on purpose — for binaries this is what makes builds
   reproducible. After adding dependencies run `cargo build` (or `cargo update`)
-  to refresh it; the Nix build reads it via `cargoLock.lockFile`.
-- The dev shell takes `inputsFrom = [self.packages.<system>.default]`, so any
-  system library you add to the package's `buildInputs` is present in the shell
-  too — one place to declare it, not two.
+  to refresh it.
 - The lint policy lives in `Cargo.toml`, not in CI flags, so your editor,
   `cargo clippy` and the workflow all agree. Relax a lint there and every one of
   them relaxes with it.
-- `nix fmt` formats `flake.nix` with alejandra.
+- **`devenv.lock` is not shipped; `devenv update` writes it and you commit it.**
+  Write it early. `devenv.yaml` declares one input, but devenv adds *itself* as
+  a second and the lock pins both — until then devenv's own modules float, and
+  the environment can change behaviour with no edit by you.
+- **For editing `devenv.nix` itself, use `devenv lsp`.** It starts nixd already
+  configured for this file, using the nixd bundled inside the devenv binary, so
+  there is nothing to add to `packages`.
