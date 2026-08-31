@@ -11,9 +11,10 @@ devenv shell               # or: direnv allow
 ## Requirements
 
 **devenv, installed** — https://devenv.sh. This template ships no `flake.nix`,
-so `nix develop` does not apply to it. Every other template in this repository
-runs on a stock Nix install; this one does not, and that is the trade being
-made for supervised services. `nix profile install nixpkgs#devenv` is enough.
+so `nix develop` does not apply to it. Every template in this repository is
+now a devenv environment — the requirement is repo-wide, not a trade this one
+alone makes for supervised services. `nix profile install nixpkgs#devenv` is
+enough.
 
 ## What you get
 
