@@ -4,10 +4,11 @@
   templates = {
     android-kotlin = {
       description = "Dev environment for Android with Kotlin, Jetpack Compose and Google's Android CLI";
+      kind = "devenv";
       tier = "shell";
       smoke = ["android --version" "gradle --version" "kotlinc -version" "ktlint --version"];
       systems = ["x86_64-linux"];
-      reason = "a gradle build needs network, and nixpkgs builds android-cli for x86_64-linux and aarch64-darwin only";
+      reason = "ships no project — android create scaffolds it and needs a writable SDK; a gradle build needs network, and nixpkgs builds android-cli for x86_64-linux and aarch64-darwin only";
       welcomeText = ''
         # android-kotlin
 
@@ -15,12 +16,13 @@
         Android CLI. This template ships no project — `android create`
         generates it, so you start from Google's current AGP and Compose.
 
-        A flake only sees files that git tracks, so initialise the repository
-        before entering the shell:
+        This is a devenv environment rather than a flake: there is no
+        `flake.nix`, and `nix develop` does not apply here. Install devenv —
+        https://devenv.sh — then:
 
         ```
         git init && git add -A
-        nix develop                          # or: direnv allow
+        devenv shell           # or: direnv allow
         android create --name="My App" -o myapp
         ```
 

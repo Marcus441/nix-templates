@@ -3,6 +3,10 @@ result
 result-*
 .direnv/
 
+# devenv
+.devenv*
+devenv.local.nix
+
 # Gradle
 .gradle/
 **/build/

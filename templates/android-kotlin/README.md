@@ -8,14 +8,14 @@ template was written.
 
 ```bash
 nix flake init -t 'github:Marcus441/nix-templates#android-kotlin'
-git init && git add -A          # flakes see only tracked files
-nix develop                     # or: direnv allow
+git init && git add -A
+devenv shell               # or: direnv allow
 android create --name="My App" -o myapp
 cd myapp && gradle assembleDebug
 ```
 
 `android create` **refuses a non-empty directory**, so the project goes in a
-subdirectory rather than beside `flake.nix`. Everything below runs from inside
+subdirectory rather than beside `devenv.nix`. Everything below runs from inside
 that subdirectory unless it says otherwise.
 
 Then one edit to finish the setup:
@@ -25,6 +25,11 @@ Then one edit to finish the setup:
   path that does not exist. This template cannot know the name you picked —
   it is the one thing `android create` does not fill in for you.
 
+## Requirements
+
+**devenv, installed** — https://devenv.sh. There is no `flake.nix` here, so
+`nix develop` does not apply. `nix profile install nixpkgs#devenv` is enough.
+
 ## What you get
 
 - `android` — Google's Android CLI: scaffolding, SDK, emulators, deploy,
@@ -33,7 +38,8 @@ Then one edit to finish the setup:
 - Gradle 9.5.1 — AGP 9 requires Gradle 9.1.0 or newer
 - `kotlinc` for scratch files, and `ktlint`
 
-The SDK itself is **not** in this flake; see [The SDK is yours](#the-sdk-is-yours).
+The SDK itself is **not** in this environment; see
+[The SDK is yours](#the-sdk-is-yours).
 
 ## Scaffolding
 
@@ -81,8 +87,9 @@ which prints every variant's APK path and whether it exists yet. `android
 describe` shells out to `./gradlew`, so run it from inside the dev shell;
 outside it there is no JDK and it fails with `gradlew failed with exit code 1`.
 
-There is no `nix build` for this template: a Gradle build resolves dependencies
-over the network, which a Nix build sandbox does not have.
+There is no `nix build` for this template — it ships no flake, and a Gradle
+build resolves dependencies over the network, which a Nix build sandbox does
+not have.
 
 ## Emulator
 
@@ -132,7 +139,7 @@ and it will work provided:
 1. **Scaffold first, then open the editor.** The server roots on
    `settings.gradle.kts` / `build.gradle.kts`, which do not exist until
    `android create` has run. Open the editor at the project root (`myapp/`),
-   not at the flake root.
+   not at the repository root.
 2. **Launch the editor from inside the shell,** or let direnv put you there.
    The server imports the Gradle model as a subprocess and needs `JAVA_HOME`
    and a `gradle` on `$PATH`; an editor started from your desktop session has
@@ -191,8 +198,8 @@ android init                 # installs the android-cli skill for detected agent
 
 ## The SDK is yours
 
-This flake pins the toolchain — JDK, Gradle, Kotlin, ktlint, the CLI — and
-leaves the Android SDK to you and to `android`. That is not an oversight:
+This environment pins the toolchain — JDK, Gradle, Kotlin, ktlint, the CLI —
+and leaves the Android SDK to you and to `android`. That is not an oversight:
 `android create` installs SDK packages as it runs, so it needs a **writable**
 SDK, which a Nix store path is not.
 
@@ -245,9 +252,9 @@ workflow, as above.
 
 ## Notes
 
-- **This template is `x86_64-linux` only.** The `systems` list in `flake.nix`
-  says so. nixpkgs builds `android-cli` for `x86_64-linux` and `aarch64-darwin`
-  and not for `aarch64-linux`, and only the first is tested here.
+- **This template is `x86_64-linux` only.** nixpkgs builds `android-cli` for
+  `x86_64-linux` and `aarch64-darwin` and not for `aarch64-linux`, and only the
+  first is tested here.
 - **On NixOS you need `programs.nix-ld.enable = true`.** The SDK packages
   `android sdk install` downloads are Google's own prebuilt FHS binaries, and
   without nix-ld's dynamic loader they do not run at all. With it, `adb`,
@@ -274,7 +281,7 @@ workflow, as above.
   above.
 - **The emulator's bundled Qt has no Wayland plugin.** It ships exactly five —
   `linuxfb`, `minimal`, `offscreen`, `vnc`, `xcb` — so on a Wayland session it
-  aborts with *"no Qt platform plugin could be initialized"*. The dev shell
+  aborts with *"no Qt platform plugin could be initialized"*. `devenv.nix`
   wraps `android` with `QT_QPA_PLATFORM=xcb` so it runs under XWayland. The
   wrapper is scoped to `android` and the emulator it spawns rather than exported
   into the shell, so no other Qt application is dragged onto XWayland; it sets
@@ -293,8 +300,8 @@ workflow, as above.
   and the foojay resolver downloads a whole JDK over the network.
 - **`android update` cannot work here.** It self-updates the binary in place,
   and the binary lives in the read-only Nix store. It will tell you a newer
-  version exists; the way to take it is to bump nixpkgs. Everything else works
-  at whatever version nixpkgs carries.
+  version exists; the way to take it is `devenv update`, which moves nixpkgs.
+  Everything else works at whatever version nixpkgs carries.
 - **The CLI reports usage data to Google by default** — commands, subcommands
   and flag names, not their values. `--no-metrics` turns it off, per-invocation
   or once in `~/.androidrc`.
@@ -313,4 +320,17 @@ workflow, as above.
   and defers to an explicit `ANDROID_AVD_HOME`.
 - **`ANDROID_SDK_ROOT` is ignored** by the CLI; only `ANDROID_HOME` is read.
   Gradle still honours both, and `local.properties` beats either.
-- `nix fmt` formats `flake.nix` with alejandra.
+- **`allowUnfree: true` in `devenv.yaml` is what admits the Android CLI.**
+  nixpkgs marks `android-cli` unfree, because Google ships it under its own
+  terms rather than a free licence. `devenv.yaml` is where devenv takes that
+  setting, so the exception travels with the template instead of living in
+  your global nixpkgs config.
+- **`devenv.lock` is not shipped; `devenv update` writes it and you commit
+  it.** Write it early. `devenv.yaml` declares one input, but devenv adds
+  *itself* as a second and the lock pins both — until then devenv's own modules
+  float as well as nixpkgs, and the environment can change behaviour with no
+  edit by you.
+- **For editing `devenv.nix` itself, use `devenv lsp`.** It starts nixd already
+  configured for this file, using the nixd bundled inside the devenv binary —
+  so there is nothing to add to `packages`, and `devenv lsp --print-config`
+  shows what it hands nixd.
