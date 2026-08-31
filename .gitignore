@@ -1,11 +1,7 @@
 # Nix artifacts
 #
-# Templates ship unlocked so a consumer resolves current nixpkgs on first use,
-# and none is re-included below today — the only tracked lock is the root's,
-# which belongs to this repo's own flake and not to any template. Locking a
-# template means adding `!/templates/<name>/flake.lock` here, and the
-# lock-policy check enforces that it agrees with `locked` in
-# meta/templates.nix — CLAUDE.md 5.
+# The only tracked flake.lock is the root's, which belongs to this repo's own
+# registry flake — no template ships one, and template-hygiene forbids it.
 flake.lock
 !/flake.lock
 
@@ -16,9 +12,10 @@ flake.lock
 # .devenv/ holds a live postgres data directory. The test-template skill tells
 # you to go poke at a failing copy, so this is not hypothetical.
 #
-# devenv.lock is the devenv-kind analogue of flake.lock above: ignored by
-# default, re-included per template with `!/templates/<name>/devenv.lock` when
-# `locked = true` — CLAUDE.md 5.
+# devenv.lock is the template lock: ignored by default because templates ship
+# unlocked (a consumer resolves current nixpkgs on first use), re-included per
+# template with `!/templates/<name>/devenv.lock` when `locked = true` — the
+# lock-policy check enforces that the two agree. CLAUDE.md 5.
 devenv.lock
 .devenv/
 .devenv.flake.nix
