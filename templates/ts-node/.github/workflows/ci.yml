@@ -10,10 +10,10 @@ concurrency:
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
-  # The sandboxed build and its check phase — the same thing `nix build` does
-  # locally, on both runner platforms. `doCheck = true`, so this runs the tests.
-  nix:
-    name: nix build (${{ matrix.os }})
+  # `devenv test` builds the environment, then runs enterTest — npm ci, the
+  # vitest suite and the tsc build — on both runner platforms.
+  devenv:
+    name: devenv test (${{ matrix.os }})
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -22,27 +22,30 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: DeterminateSystems/nix-installer-action@main
-      - uses: nix-community/cache-nix-action@v6
+      # devenv's own public cache. No secret, so this still works on fork PRs;
+      # without it the runner builds devenv's closure from source.
+      - uses: cachix/cachix-action@v16
         with:
-          primary-key: nix-${{ matrix.os }}-${{ hashFiles('flake.lock', 'flake.nix', 'package-lock.json') }}
-          restore-prefixes-first-match: nix-${{ matrix.os }}-
-          gc-max-store-size: 4G
-      - run: nix flake check --print-build-logs
-      - run: nix build --print-build-logs
+          name: devenv
+      - run: nix profile install nixpkgs#devenv
+      # `npm ci` downloads from the npm registry. devenv test is not a build
+      # sandbox, so it has the network for that — which is also why this job is
+      # slower than a flake template's.
+      - run: devenv test
 
-  # What the sandboxed build does not do: typecheck the tests. tsconfig.json
-  # covers src and test; tsconfig.build.json, which `npm run build` uses, does
-  # not — so without this step a broken test file would only fail at runtime.
+  # What enterTest does not do: typecheck the tests. tsconfig.json covers src
+  # and test; tsconfig.build.json, which `npm run build` uses, does not — and
+  # vitest runs test files without typechecking them, so a type error there
+  # would not fail the suite.
   typecheck:
     name: typecheck
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: DeterminateSystems/nix-installer-action@main
-      - uses: nix-community/cache-nix-action@v6
+      - uses: cachix/cachix-action@v16
         with:
-          primary-key: nix-shell-${{ hashFiles('flake.lock', 'flake.nix') }}
-          restore-prefixes-first-match: nix-shell-
-          gc-max-store-size: 4G
-      - run: nix develop --command npm ci
-      - run: nix develop --command npm run typecheck
+          name: devenv
+      - run: nix profile install nixpkgs#devenv
+      - run: devenv shell -- npm ci
+      - run: devenv shell -- npm run typecheck
