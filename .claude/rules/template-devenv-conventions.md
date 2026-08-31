@@ -2,23 +2,19 @@
 paths: "templates/*/devenv.nix"
 ---
 
-# Writing a devenv template
+# Writing a template
 
-A devenv template is read by someone who has never seen this repo, and copied
-into a project that has no relationship to it. Optimise for that reader — the
-same instruction as `.claude/rules/template-flake-conventions.md`, which is the
-sibling document for `kind = "flake"`.
+A template is read by someone who has never seen this repo, and copied into a
+project that has no relationship to it. Optimise for that reader.
 
 **There is no `flake.nix`, and there must not be one.** `template-hygiene`
-fails a `kind = "devenv"` template that ships `flake.nix` or `flake.lock`, and
-fails a flake template that ships `devenv.nix`, `devenv.yaml` or `devenv.lock`.
-One environment, one definition of it — `docs/decisions/devenv.md` rejected the
-hybrid and `docs/decisions/devenv-templates.md` did not reopen it.
+fails any template that ships `flake.nix` or `flake.lock`. One environment,
+one definition of it — `docs/decisions/devenv.md` rejected the hybrid and
+`docs/decisions/devenv-templates.md` did not reopen it.
 
 **Never devenv's flake integration.** `devenv.lib.mkShell` inside a `flake.nix`
-cannot start processes and needs `nix develop --no-pure-eval`. Since supervised
-services are the only reason to reach for devenv here, that shape pays every
-cost and delivers none of the benefit.
+cannot start processes and needs `nix develop --no-pure-eval` — every cost of
+the hybrid, none of the benefit.
 
 ## The canonical `devenv.yaml`
 
@@ -36,22 +32,20 @@ inherited.
 ## Rules
 
 - **Never reference a path outside the template directory.** No `../`, in
-  either file — a devenv template has one more way out than a flake does, and
-  it is `imports = [ ../shared.nix ];` in `devenv.nix`. Checked in both files.
-  `path:./sub` is fine: it stays inside the copy.
-- **No comments in `devenv.nix`.** Same rule as a flake template's `flake.nix`,
-  same reason: a reader skimming it should see the shape, not prose. Anything
-  worth saying goes in the README under `Notes`. This matters more here, not
-  less — a shim or a workaround needs a *removal trigger* a reader can act on,
-  and a comment cannot carry one.
+  either file — `devenv.yaml`'s inputs are one way out of the copy, and
+  `imports = [ ../shared.nix ];` in `devenv.nix` is the other. Checked in both
+  files. `path:./sub` is fine: it stays inside the copy.
+- **No comments in `devenv.nix`.** A reader skimming it should see the shape,
+  not prose. Anything worth saying goes in the README under `Notes` — not
+  least because a shim or a workaround needs a *removal trigger* a reader can
+  act on, and a comment cannot carry one.
 - **No `enterShell` banner.** A subprocess on every `devenv shell` and every
   direnv reload, for what the README already says. If it does real work it may
   stay; decoration may not.
 - **`enterTest` must prove the service, not the binary.** `psql --version`
   proves nothing that a `smoke` command does not already prove. Wait for
   readiness, then exercise the thing: connect, write, read back. A green
-  `build` tier for a devenv template is a claim that the services came up, so
-  it has to be one.
+  `build` tier is a claim that the services came up, so it has to be one.
 - **Prefer a socket to a port.** `services.postgres` listens on a unix socket
   by default, which cannot collide with a service the developer already runs
   and keeps the path clear of the 104-byte limit macOS puts on `sun_path`.
@@ -64,9 +58,8 @@ inherited.
 - **Never add a Nix language server to `packages`.** `devenv lsp` starts nixd
   already configured for `devenv.nix`, using the nixd bundled inside the devenv
   binary the consumer installed — `pkgs.nixd` would be a second copy in the
-  closure for nothing. Note the flake templates ship no Nix LSP either: a
-  template ships the *project's* language server, not one for its own build
-  definition.
+  closure for nothing. A template ships the *project's* language server, not
+  one for its own build definition.
 - **Check what a `languages.<x>.lsp.enable` default is computed from.** It is
   not always `true`, and it does not always track `lsp.package`.
   `languages.dotnet.lsp.enable` defaults to `availableOn <host> csharp-ls`, and
@@ -74,10 +67,9 @@ inherited.
   `lsp.package` leaves Apple Silicon with no server at all. Set `enable`
   explicitly when you override the package, and check the replacement is
   actually available on every system the registry claims.
-- **`unfree` goes in `devenv.yaml`, not the registry.** The registry's `unfree`
-  flag adds `--impure` to a `nix` command, which the devenv path never runs.
-  `checks.unfree-is-flake-only` rejects it in seconds at `nix flake check`,
-  rather than the harness discovering it partway through a run.
+- **Unfree or licence-gated packages: `allowUnfree: true` in `devenv.yaml`.**
+  That is the whole mechanism — no registry flag, no `--impure`, nothing for
+  the consumer to pass. `android-kotlin` is the worked example.
 - **A shim for an upstream devenv bug is a liability with a short fuse.**
   `devenv-postgres` carried one for a day: devenv's `services/postgres.nix` set
   `processes.postgres.shutdown`, its `processes.nix` did not declare it, so the
@@ -93,19 +85,20 @@ inherited.
   offered for review — CLAUDE.md §9. A shim plus a removal trigger is the whole
   response.
 
-## What a devenv template cannot do
+## What the artifact does not say
 
-**Unlocked, it floats on an input it never declares.** `devenv.yaml` names
-nixpkgs; devenv adds itself as a second input and `devenv.lock` pins both. So
-an unlocked devenv template tracks `cachix/devenv` and its *service modules*
-move under it — a wider drift surface than any flake template has, and one the
-artifact does not mention. `devenv-postgres` broke this way overnight during
-development. Say so in the README, and reach for `devenv update` earlier than
-you would reach for `nix flake lock`.
+**Unlocked, a template floats on an input it never declares.** `devenv.yaml`
+names nixpkgs; devenv adds itself as a second input and `devenv.lock` pins
+both. So an unlocked template tracks `cachix/devenv` and its *service modules*
+move under it — a drift surface nothing in the template mentions.
+`devenv-postgres` broke this way overnight during development. Say so in the
+README, and suspect that input first when a template goes red with no commit
+here.
 
-**It has no `systems` of its own.** A flake template states its platform claim
-in the artifact and `flake-inputs` greps for it. Here the claim lives only in
-the registry and is enforced only by the CI matrix.
+**Every template's `systems` claim lives in the registry.** Neither
+`devenv.nix` nor `devenv.yaml` names a platform, so `meta/templates.nix` is
+the only place the claim exists and the CI matrix is its only enforcement.
+Narrowing it there requires a `reason`.
 
 ## Before you finish
 
@@ -113,9 +106,8 @@ the registry and is enforced only by the CI matrix.
   direnvrc)"` then `use devenv` — not `devenv init`'s `source_url`, which pins
   a hash that rots), `.gitignore` opening with the four-line Nix block, and a
   `README.md` opening with `# <name>` and carrying a `## Building` section.
-  There is nothing to build, so that section says what the build-shaped command
-  is: `devenv test`.
-- The registry needs an entry with `kind = "devenv"` — see the **add-template**
-  skill.
+  There is no `nix build` here, so that section says what the build-shaped
+  command is: `devenv test`.
+- The registry needs an entry — see the **add-template** skill.
 - **Run the harness.** `./scripts/test-template.sh <name>`. Reading the
   `devenv.nix` is not evidence that the service starts.

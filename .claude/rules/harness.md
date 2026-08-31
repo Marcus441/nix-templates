@@ -10,15 +10,17 @@ work, and the reason is not obvious enough to survive a well-meaning refactor.
 A `nix build` sandbox has no network and no connection to the nix daemon, and
 `recursive-nix` is **not** in this machine's `experimental-features`
 (`fetch-tree flakes nix-command`). So a derivation cannot run `nix flake init`,
-`nix flake check`, `nix develop` or `nix build`. Everything that proves a
-template actually works has to happen outside the sandbox.
+and it cannot run `devenv info`, `devenv shell` or `devenv test` either — every
+devenv command starts by resolving the template's inputs over the network.
+Everything that proves a template actually works has to happen outside the
+sandbox.
 
 Hence the split:
 
 | | `checks.*` (`meta/checks.nix`) | `scripts/test-template.sh` |
 | --- | --- | --- |
 | Runs | in the sandbox, under `nix flake check` | in your shell, and in CI |
-| Can prove | facts about template *sources* — spellings, file presence, registry consistency | that a template instantiates, its shell opens, its package builds |
+| Can prove | facts about template *sources* — spellings, file presence, registry consistency | that a template instantiates, its shell opens, its services come up and answer |
 | Cost | seconds | minutes |
 
 If a proposed check needs to *run* a template, it belongs in the script. If it
@@ -28,20 +30,22 @@ only needs to *read* the template's files or the registry, it belongs in
 ## Writing the script
 
 - **`git add -A` first, twice.** Once in this repo, so `nix flake init -t
-  .#<name>` sees the template; once inside the freshly created temp repo, so its
-  own flake sees the files that were just copied in. Both failures present as
-  "path does not exist".
+  .#<name>` sees the template; once inside the freshly created temp repo, via
+  the `git init && git add -A` pair. devenv reads the working tree rather than
+  the index, but its own inputs are flake refs, so the second staging stays.
+  Both failures present as "path does not exist".
 - **Tiers come from the registry**, via `nix build .#registry-json` and `jq`.
   The script must never hardcode a tier or re-parse Nix — `meta/templates.nix`
   is the single source of truth (CLAUDE.md Inv. 2).
-- **There are two paths, chosen by `kind`.** `nix flake init -t` and the
-  `git init && git add -A` pair are shared; everything after branches:
+- **One path, cumulative by tier.** `nix flake init -t` and the
+  `git init && git add -A` pair come first; the tier decides how far the
+  devenv steps go:
 
-  | Tier | `kind = "flake"` | `kind = "devenv"` |
-  | --- | --- | --- |
-  | `eval` | `nix flake check --no-build` | `devenv info` |
-  | `shell` | `nix develop --command bash -c` | `devenv shell -- bash -c` |
-  | `build` | `nix build --no-link '.#default'` | `devenv test` |
+  | Tier | Runs |
+  | --- | --- |
+  | `eval` | `devenv info` |
+  | `shell` | the above, then `devenv shell -- bash -c` per `smoke` command |
+  | `build` | the above, then `devenv test` |
 
   The `--` in `devenv shell --` is load-bearing: `-c` is a *global* devenv
   option (`--clean`), so `devenv shell bash -c "…"` would scrub the environment
@@ -50,18 +54,17 @@ only needs to *read* the template's files or the registry, it belongs in
   finds the supervisor through `$work/.devenv`, so deleting the work directory
   first orphans a daemon with no handle left to stop it. That is why the
   teardown sits with the devenv steps rather than in the cleanup branch, and
-  why the script now carries a trap it never needed when every template was a
-  flake. `--keep` tears down too: the reproduce line restarts the processes
-  anyway, and a `--keep` in CI would otherwise leak them.
+  why the script traps `EXIT`, `INT` and `TERM`. `--keep` tears down too: the
+  reproduce line restarts the processes anyway, and a `--keep` in CI would
+  otherwise leak them.
 - **The script resolves `devenv` itself** — `nix build --no-link
-  --print-out-paths --inputs-from "$REPO" nixpkgs#devenv`, once per run, when it
-  is not on `PATH`, so CI needs no install step. Once, because every step runs
-  in a `( cd … )` subshell and a lazy resolve inside the wrapper would be
-  discarded each time. Not a
-  bare `nixpkgs#devenv`: that resolves the caller's flake registry, which is a
-  fourth nixpkgs spelling. Not the dev shell either — `nix flake check`
-  realises `devShells`, so that would put a 394 MiB closure on the `static`
-  job on every push.
+  --print-out-paths --inputs-from "$REPO" nixpkgs#devenv`, once per run, when
+  it is not on `PATH`, so CI needs no install step. Once, because every step
+  runs in a `( cd … )` subshell and a lazy resolve inside the wrapper would be
+  discarded each time. Not a bare `nixpkgs#devenv`: that resolves the caller's
+  flake registry, which is a fourth nixpkgs spelling entering through the back
+  door. Not the dev shell either — `nix flake check` realises `devShells`, so
+  that would put a 394 MiB closure on the `static` job on every push.
 - **Redirect the XDG dirs, not just `HOME`.** nix falls back to `$HOME/.cache`
   only when `XDG_CACHE_HOME` is unset, and devenv reads the XDG variables
   directly. `XDG_CONFIG_HOME` is deliberately *not* redirected: nix reads
@@ -76,7 +79,7 @@ only needs to *read* the template's files or the registry, it belongs in
   darwin failure that says only "FAIL" costs a whole round trip to diagnose.
   `--keep` suppresses cleanup so the directory and the full log both survive.
   Steps write to `"$work.log"` — *beside* the work directory, never inside it,
-  or the template copy would `git add -A` a stray file into its own flake.
+  or the template copy would `git add -A` a stray file into itself.
 - **It must run on bash 3.2.** The macOS runners ship bash 3.2.57 and the
   workflow calls `./scripts/test-template.sh` directly, so the script gets the
   system bash, not a nixpkgs one. That rules out three things a Linux-only
@@ -101,30 +104,27 @@ with the current change. Before editing anything, re-run against a known-good
 nixpkgs:
 
 ```bash
-nix flake check --no-build --override-input nixpkgs github:nixos/nixpkgs/<rev>
+devenv test -o nixpkgs github:nixos/nixpkgs/<rev>
 ```
-
-For a devenv template the equivalent is `devenv test -o nixpkgs
-github:nixos/nixpkgs/<rev>`.
 
 Passes with the pin ⇒ upstream drift. The fix still belongs in the template
 (pin it, or adapt to the change) — never in the harness, and never by lowering
 the template's tier.
 
-**One triage case is new: the drift may not be nixpkgs.** A devenv template
-floats on a second input it never declares — devenv adds `cachix/devenv` to
-every project, and that is where the *service modules* come from. So a red
-devenv leg can be a module change rather than a package change, and pinning
-nixpkgs alone will not reproduce or exclude it. Override both:
+**The drift may not be nixpkgs.** Every template floats on a second input it
+never declares — devenv adds `cachix/devenv` to each project, and that is
+where the *service modules* come from. So a red leg can be a module change
+rather than a package change, and pinning nixpkgs alone will not reproduce or
+exclude it. Override both:
 
 ```bash
 devenv test -o nixpkgs github:nixos/nixpkgs/<rev> -o devenv github:cachix/devenv/<rev>
 ```
 
 The revisions a working run used are in that project's `devenv.lock`, which is
-the only place either is recorded. This is not hypothetical:
-`devenv-postgres` went from passing to failing overnight on a `cachix/devenv`
-re-resolve, with no commit in this repository.
+the only place either is recorded. This is not hypothetical: `devenv-postgres`
+went from passing to failing overnight on a `cachix/devenv` re-resolve, with no
+commit in this repository.
 
 When the fault is genuinely devenv's, the response is a workaround here with a
 documented removal trigger, or waiting — **never a bug report or a pull request
