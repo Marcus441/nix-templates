@@ -47,6 +47,7 @@
 
     cpp-prod-modern = {
       description = "Dev environment for production C++ with modules";
+      kind = "devenv";
       tier = "build";
       smoke = ["cmake --version" "clangd --version" "gcovr --version"];
     };

@@ -5,16 +5,21 @@ exposed as a C++23 named module instead of a header.
 
 ```bash
 nix flake init -t 'github:Marcus441/nix-templates#cpp-prod-modern'
-git init && git add -A     # flakes see only tracked files
-nix develop                # or: direnv allow
+git init && git add -A
+devenv shell               # or: direnv allow
 ```
+
+## Requirements
+
+**devenv, installed** — https://devenv.sh. There is no `flake.nix` here, so
+`nix develop` does not apply. `nix profile install nixpkgs#devenv` is enough.
 
 ## What you get
 
 Everything `cpp-prod` has — GoogleTest, ASan/UBSan, TSan and coverage
-profiles, warnings-as-errors in the `ci` profile, an install/export set, dual
-Clang/GCC toolchains and a CI workflow — with the library delivered as
-`import myproject.greeting;` rather than an installed header.
+profiles, warnings-as-errors in the `ci` profile, an install/export set and a
+CI workflow — with the library delivered as `import myproject.greeting;`
+rather than an installed header.
 
 If you do not specifically want modules, use `cpp-prod`. Module support in the
 wider ecosystem is still uneven, and the two limitations below are real.
@@ -40,13 +45,8 @@ cmake --workflow --preset dev       # Debug + ASan/UBSan, configure/build/test
 cmake --workflow --preset release   # optimized, LTO, hardening
 ```
 
-Or build the Nix package, which compiles in a sandbox and runs the tests:
-
-```bash
-nix build           # Clang
-nix build '.#gcc'   # GCC
-nix run             # runs the built binary
-```
+`devenv test` does the same from a cold checkout: it builds the environment,
+then runs the `release` workflow inside it.
 
 ## Testing
 
@@ -56,6 +56,8 @@ cmake --workflow --preset asan
 cmake --workflow --preset tsan
 ```
 
+GoogleTest comes from the environment.
+
 ## Coverage
 
 ```bash
@@ -63,9 +65,6 @@ cmake --workflow --preset coverage
 gcovr --root . --exclude "build/" --gcov-executable "llvm-cov gcov" \
       build/coverage --txt
 ```
-
-Under `nix develop '.#gcc'`, drop `--gcov-executable` so `gcovr` uses GCC's own
-`gcov`.
 
 ## CI
 
@@ -90,11 +89,15 @@ template repository** — GitHub only executes workflows at a repository root.
   to be global because every consumer of a module must be scanned too, so the
   generator can order the interface ahead of anything importing it. Caching it
   would leak the setting into subprojects.
-- **The build needs `clang-tools` in `nativeBuildInputs`, not just the dev
-  shell.** `clang-scan-deps` has to resolve the standard library the same way
-  the compiler does; the unwrapped binary does not, and the build fails with
-  `fatal error: 'string' file not found` during the scanning step. This is the
-  one line in `flake.nix` that `cpp-prod` does not need.
+- **`clang-tools` in `packages` is load-bearing, not editor convenience.** It
+  supplies `clang-scan-deps`, which has to resolve the standard library the
+  same way the compiler does; the unwrapped binary does not, and the build
+  fails with `fatal error: 'string' file not found` during the scanning step.
+  `cpp-prod` ships the same package for `clangd` and `clang-format`; this
+  template also cannot build without it.
+- **The environment is Clang-only.** For GCC, edit `devenv.nix`: replace
+  `pkgs.llvmPackages.clang` with `pkgs.gcc`, `pkgs.llvmPackages.lldb` with
+  `pkgs.gdb`, and drop `bintools`.
 - **`import std;` is deliberately not used.** It is still behind CMake's
   `CMAKE_EXPERIMENTAL_CXX_IMPORT_STD` gate, whose UUID changes on every CMake
   minor release specifically so projects cannot depend on it. This template
@@ -113,4 +116,11 @@ template repository** — GitHub only executes workflows at a repository root.
   `cpp-prod` for the reasoning, which applies here unchanged.
 - `.envrc` adds `build/dev` to `PATH`, which is where the `dev` preset puts the
   binary.
-- `nix fmt` formats `flake.nix` with alejandra.
+- **`devenv.lock` is not shipped; `devenv update` writes it and you commit
+  it.** Write it early. `devenv.yaml` declares one input, but devenv adds
+  *itself* as a second and the lock pins both — until then devenv's own modules
+  float, and the environment can change behaviour with no edit by you.
+- **For editing `devenv.nix` itself, use `devenv lsp`.** It starts nixd already
+  configured for this file, using the nixd bundled inside the devenv binary —
+  so there is nothing to add to `packages`, and `devenv lsp --print-config`
+  shows what it hands nixd.
