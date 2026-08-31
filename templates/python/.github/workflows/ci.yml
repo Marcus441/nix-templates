@@ -10,11 +10,12 @@ concurrency:
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
-  # The sandboxed build and its check phase — the same thing `nix build` does
-  # locally, on both runner platforms. pytestCheckHook runs the tests here, with
-  # nixpkgs' pytest and no network.
-  nix:
-    name: nix build (${{ matrix.os }})
+  # `devenv test` builds the environment, then runs enterTest — uv sync and the
+  # test suite. It is not a build sandbox, so it has the network uv needs to
+  # reach PyPI; that is also what makes this job slower than a flake
+  # template's.
+  devenv:
+    name: devenv test (${{ matrix.os }})
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -23,34 +24,34 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: DeterminateSystems/nix-installer-action@main
-      - uses: nix-community/cache-nix-action@v6
+      # devenv's own public cache. No secret, so this still works on fork PRs;
+      # without it the runner builds devenv's closure from source.
+      - uses: cachix/cachix-action@v16
         with:
-          primary-key: nix-${{ matrix.os }}-${{ hashFiles('flake.lock', 'flake.nix', 'pyproject.toml') }}
-          restore-prefixes-first-match: nix-${{ matrix.os }}-
-          gc-max-store-size: 4G
-      - run: nix flake check --print-build-logs
-      - run: nix build --print-build-logs
+          name: devenv
+      - run: nix profile install nixpkgs#devenv
+      - run: devenv test
 
-  # Everything the sandboxed build deliberately does not do: the lint and type
-  # policy in pyproject.toml, and the tests as they run against .venv.
+  # What `devenv test` does not cover: the lint and type policy in
+  # pyproject.toml, and a sync that fails loudly when the committed uv.lock is
+  # stale. Policy needs one platform, not two.
   checks:
     name: ruff, mypy and pytest
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: DeterminateSystems/nix-installer-action@main
-      - uses: nix-community/cache-nix-action@v6
+      - uses: cachix/cachix-action@v16
         with:
-          primary-key: nix-shell-${{ hashFiles('flake.lock', 'flake.nix') }}
-          restore-prefixes-first-match: nix-shell-
-          gc-max-store-size: 4G
+          name: devenv
+      - run: nix profile install nixpkgs#devenv
       - uses: actions/cache@v4
         with:
           path: ~/.cache/uv
           key: uv-${{ hashFiles('uv.lock') }}
           restore-keys: uv-
-      - run: nix develop --command uv sync --locked
-      - run: nix develop --command ruff check .
-      - run: nix develop --command ruff format --check .
-      - run: nix develop --command uv run --no-sync mypy
-      - run: nix develop --command uv run --no-sync pytest
+      - run: devenv shell -- bash -c 'uv sync --locked'
+      - run: devenv shell -- bash -c 'ruff check .'
+      - run: devenv shell -- bash -c 'ruff format --check .'
+      - run: devenv shell -- bash -c 'uv run --no-sync mypy'
+      - run: devenv shell -- bash -c 'uv run --no-sync pytest'

@@ -92,6 +92,7 @@
 
     python = {
       description = "Dev environment for Python with uv, ruff and mypy";
+      kind = "devenv";
       tier = "build";
       smoke = ["python3 --version" "uv --version" "ruff --version"];
     };
