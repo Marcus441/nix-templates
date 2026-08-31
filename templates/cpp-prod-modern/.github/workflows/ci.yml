@@ -10,10 +10,11 @@ concurrency:
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
-  # The sandboxed build and its check phase — the same thing `nix build` does
-  # locally, on both runner platforms.
-  nix:
-    name: nix build (${{ matrix.os }})
+  # `devenv test` builds the environment and runs the `release` workflow
+  # inside it, on both runner platforms. Not a sandboxed build: devenv runs
+  # with network, like any shell.
+  devenv:
+    name: devenv test (${{ matrix.os }})
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -22,47 +23,31 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: DeterminateSystems/nix-installer-action@main
-      - uses: nix-community/cache-nix-action@v6
+      # devenv's own public cache. No secret, so this still works on fork PRs;
+      # without it the runner builds devenv's closure from source.
+      - uses: cachix/cachix-action@v16
         with:
-          primary-key: nix-${{ matrix.os }}-${{ hashFiles('flake.lock', 'flake.nix') }}
-          restore-prefixes-first-match: nix-${{ matrix.os }}-
-          gc-max-store-size: 4G
-      - run: nix flake check --print-build-logs
-      - run: nix build --print-build-logs .#clang
+          name: devenv
+      - run: nix profile install nixpkgs#devenv
+      - run: devenv test
 
-  # GCC is Linux-only here: nixpkgs' gccStdenv on aarch64-darwin is not
-  # something this template promises.
-  nix-gcc:
-    name: nix build (gcc)
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: DeterminateSystems/nix-installer-action@main
-      - run: nix build --print-build-logs .#gcc
-
-  # Everything the sandboxed build deliberately does not do: warnings as
-  # errors, clang-tidy, and the sanitizers.
+  # Everything the release workflow deliberately does not do: warnings as
+  # errors and the sanitizers.
   checks:
-    name: ${{ matrix.workflow }} (${{ matrix.shell }})
+    name: ${{ matrix.workflow }}
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
-        include:
-          - { shell: clang, workflow: ci }
-          - { shell: clang, workflow: asan }
-          - { shell: clang, workflow: tsan }
-          - { shell: gcc, workflow: ci }
-          - { shell: gcc, workflow: asan }
+        workflow: [ci, asan, tsan]
     steps:
       - uses: actions/checkout@v4
       - uses: DeterminateSystems/nix-installer-action@main
-      - uses: nix-community/cache-nix-action@v6
+      - uses: cachix/cachix-action@v16
         with:
-          primary-key: nix-shell-${{ matrix.shell }}-${{ hashFiles('flake.lock', 'flake.nix') }}
-          restore-prefixes-first-match: nix-shell-${{ matrix.shell }}-
-          gc-max-store-size: 4G
-      - run: nix develop .#${{ matrix.shell }} --command cmake --workflow --preset ${{ matrix.workflow }}
+          name: devenv
+      - run: nix profile install nixpkgs#devenv
+      - run: devenv shell -- cmake --workflow --preset ${{ matrix.workflow }}
 
   format:
     name: clang-format
@@ -70,7 +55,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: DeterminateSystems/nix-installer-action@main
+      - uses: cachix/cachix-action@v16
+        with:
+          name: devenv
+      - run: nix profile install nixpkgs#devenv
       - name: Check formatting
         run: |
-          nix develop .#clang --command bash -c \
+          devenv shell -- bash -c \
             'clang-format --dry-run --Werror $(git ls-files "*.cpp" "*.cppm" "*.hpp")'
