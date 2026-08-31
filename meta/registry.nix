@@ -146,7 +146,7 @@ in {
 
     defaultTemplate = mkOption {
       type = types.str;
-      default = "shell";
+      default = "devenv";
       description = "Copied by `nix flake init` with no -t.";
     };
   };
