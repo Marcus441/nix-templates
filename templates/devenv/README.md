@@ -1,8 +1,7 @@
 # devenv
 
-Minimal devenv environment to fill in. This is the devenv counterpart of the
-`shell` template — reach for it when you need a database or another supervised
-process, and for `shell` when you do not.
+Minimal devenv environment to fill in — the registry's default, copied by
+`nix flake init` with no `-t`.
 
 ```bash
 nix flake init -t 'github:Marcus441/nix-templates#devenv'
@@ -132,7 +131,7 @@ to inspect one.
   none of the benefit.
 - **Do not add a `flake.nix` alongside this.** Two definitions of one
   environment, with nothing checking that they agree and which one you get
-  depending on your `PATH`. If you want a flake, start from `shell` instead.
+  depending on your `PATH`.
 - **`devenv.lock` is not shipped; `devenv update` writes it and you commit it.**
   A lock in the template would be a lock over somebody else's empty input set.
 - **Write the lock early.** `devenv.yaml` declares one input, but devenv adds

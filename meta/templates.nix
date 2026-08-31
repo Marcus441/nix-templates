@@ -102,12 +102,6 @@
       smoke = ["cargo --version" "clippy-driver --version"];
     };
 
-    shell = {
-      description = "Minimal dev shell to fill in";
-      tier = "shell";
-      reason = "intentionally an empty stub; there is nothing to build or smoke-test";
-    };
-
     ts-node = {
       description = "Dev environment for Node.js with TypeScript";
       tier = "build";
