@@ -10,10 +10,12 @@ concurrency:
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
-  # The sandboxed build and its check phase — the same thing `nix build` does
-  # locally, on both runner platforms. buildRustPackage runs `cargo test` here.
-  nix:
-    name: nix build (${{ matrix.os }})
+  # `devenv test` builds the environment and runs enterTest inside it — here
+  # that is `cargo test`, on both runner platforms. It is not a build sandbox:
+  # it has the network, which cargo will use the first time a dependency is
+  # added.
+  devenv:
+    name: devenv test (${{ matrix.os }})
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -22,26 +24,28 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: DeterminateSystems/nix-installer-action@main
-      - uses: nix-community/cache-nix-action@v6
+      # devenv's own public cache. No secret, so this still works on fork PRs;
+      # without it the runner builds devenv's closure from source.
+      - uses: cachix/cachix-action@v16
         with:
-          primary-key: nix-${{ matrix.os }}-${{ hashFiles('flake.lock', 'flake.nix', 'Cargo.lock') }}
-          restore-prefixes-first-match: nix-${{ matrix.os }}-
-          gc-max-store-size: 4G
-      - run: nix flake check --print-build-logs
-      - run: nix build --print-build-logs
+          name: devenv
+      - run: nix profile install nixpkgs#devenv
+      - run: devenv test
 
-  # Everything the sandboxed build deliberately does not do: the lint policy in
-  # Cargo.toml's [lints] tables, as errors, and the formatter.
+  # Everything deliberately kept out of enterTest: the lint policy in
+  # Cargo.toml's [lints] tables, as errors, and the formatter. A clippy release
+  # that adds lints reddens this job, not `devenv test`.
   checks:
     name: clippy and rustfmt
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: DeterminateSystems/nix-installer-action@main
-      - uses: nix-community/cache-nix-action@v6
+      # devenv's own public cache. No secret, so this still works on fork PRs;
+      # without it the runner builds devenv's closure from source.
+      - uses: cachix/cachix-action@v16
         with:
-          primary-key: nix-shell-${{ hashFiles('flake.lock', 'flake.nix', 'Cargo.lock') }}
-          restore-prefixes-first-match: nix-shell-
-          gc-max-store-size: 4G
-      - run: nix develop --command cargo clippy --all-targets -- -D warnings
-      - run: nix develop --command cargo fmt --check
+          name: devenv
+      - run: nix profile install nixpkgs#devenv
+      - run: devenv shell -- cargo clippy --all-targets -- -D warnings
+      - run: devenv shell -- cargo fmt --check
