@@ -4,7 +4,6 @@
   templates = {
     android-kotlin = {
       description = "Dev environment for Android with Kotlin, Jetpack Compose and Google's Android CLI";
-      kind = "devenv";
       tier = "shell";
       smoke = ["android --version" "gradle --version" "kotlinc -version" "ktlint --version"];
       systems = ["x86_64-linux"];
@@ -35,49 +34,42 @@
 
     cpp = {
       description = "Dev environment for C/C++";
-      kind = "devenv";
       tier = "build";
       smoke = ["cmake --version" "clangd --version"];
     };
 
     cpp-prod = {
       description = "Dev environment for production C/C++";
-      kind = "devenv";
       tier = "build";
       smoke = ["cmake --version" "clangd --version" "clang-tidy --version" "gcovr --version"];
     };
 
     cpp-prod-modern = {
       description = "Dev environment for production C++ with modules";
-      kind = "devenv";
       tier = "build";
       smoke = ["cmake --version" "clangd --version" "gcovr --version"];
     };
 
     cpp-simple = {
       description = "Dev environment for learning C++ with a plain Makefile";
-      kind = "devenv";
       tier = "build";
       smoke = ["make --version" "clangd --version" "cpplint --version"];
     };
 
     devenv = {
       description = "Minimal devenv environment to fill in";
-      kind = "devenv";
       tier = "shell";
       reason = "intentionally an empty stub; there is nothing to build or test";
     };
 
     devenv-postgres = {
       description = "devenv environment with a local PostgreSQL service";
-      kind = "devenv";
       tier = "build";
       smoke = ["psql --version" "pg_isready --version"];
     };
 
     dotnet = {
       description = "Dev environment for .NET, with F# tooling";
-      kind = "devenv";
       tier = "shell";
       smoke = ["dotnet --version"];
       reason = "ships no project — dotnet new scaffolds it, so there is nothing for enterTest to build";
@@ -85,42 +77,36 @@
 
     dotnet-react-postgres = {
       description = "devenv environment for .NET and React with a local PostgreSQL";
-      kind = "devenv";
       tier = "build";
       smoke = ["dotnet --version" "node --version" "psql --version"];
     };
 
     go-react-postgres = {
       description = "devenv environment for Go and React with a local PostgreSQL";
-      kind = "devenv";
       tier = "build";
       smoke = ["go version" "node --version" "psql --version"];
     };
 
     python = {
       description = "Dev environment for Python with uv, ruff and mypy";
-      kind = "devenv";
       tier = "build";
       smoke = ["python3 --version" "uv --version" "ruff --version"];
     };
 
     rust = {
       description = "Dev environment for a minimal production-ready Rust project";
-      kind = "devenv";
       tier = "build";
       smoke = ["cargo --version" "clippy-driver --version"];
     };
 
     ts-node = {
       description = "Dev environment for Node.js with TypeScript";
-      kind = "devenv";
       tier = "build";
       smoke = ["node --version" "npm --version"];
     };
 
     typst = {
       description = "Dev environment for Typst documents";
-      kind = "devenv";
       tier = "build";
       smoke = ["typst --version"];
     };
