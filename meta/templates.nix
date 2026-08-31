@@ -116,9 +116,9 @@
 
     typst = {
       description = "Dev environment for Typst documents";
-      tier = "shell";
+      kind = "devenv";
+      tier = "build";
       smoke = ["typst --version"];
-      reason = "dev-shell-only template; there is no package output to build";
     };
   };
 }
