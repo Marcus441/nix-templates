@@ -1,0 +1,9 @@
+{
+  "name": "@app/contracts",
+  "version": "0.0.0",
+  "private": true,
+  "types": "./src/api.d.ts",
+  "devDependencies": {
+    "openapi-typescript": "^7.8.0"
+  }
+}

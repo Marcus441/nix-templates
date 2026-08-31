@@ -1,0 +1,39 @@
+name: backend
+
+# Path-filtered fast feedback for the Go half of the monorepo. ci.yml still
+# runs `devenv test` on everything — this job only shortens the loop when a
+# change cannot have touched the frontend.
+on:
+  push:
+    branches: [main]
+    paths:
+      - "apps/api/**"
+      - "packages/contracts/**"
+      - ".github/workflows/backend.yml"
+  pull_request:
+    paths:
+      - "apps/api/**"
+      - "packages/contracts/**"
+      - ".github/workflows/backend.yml"
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  build-and-test:
+    name: go build + test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: DeterminateSystems/nix-installer-action@main
+      - uses: cachix/cachix-action@v16
+        with:
+          name: devenv
+      - run: nix profile install nixpkgs#devenv
+      # Inside the devenv shell so the toolchain is the same one `devenv up`
+      # uses, not whatever the runner image happens to carry. The shell must
+      # start where devenv.nix lives — the repository root — so `-C apps/api`
+      # is how these steps get a working directory, not the YAML key.
+      - run: devenv shell -- go build -C apps/api ./...
+      - run: devenv shell -- go test -C apps/api ./...

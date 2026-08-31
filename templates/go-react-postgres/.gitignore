@@ -8,8 +8,7 @@ result-*
 devenv.local.nix
 
 # Go build output
-/bin/
-/api
+bin/
 *.test
 *.out
 
