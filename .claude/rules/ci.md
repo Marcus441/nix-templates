@@ -4,7 +4,7 @@ paths: ".github/workflows/*"
 
 # CI
 
-Three things nothing else in the repo says.
+What nothing else in the repo says.
 
 ## `templates/*/.github/workflows/*.yml` is not this repo's CI
 
@@ -17,6 +17,22 @@ beside their `ci.yml`. GitHub only runs workflows found at the repository
 root, so none of them has ever executed here and never will. Moving one to the
 root would break every generated project and test nothing. Commit `11d22e0`
 moved the android one *into* its template deliberately.
+
+## `claude-code-review.yml` reviews, and only comments
+
+The second workflow that runs here. It runs the `code-review` plugin against
+every pull request and posts findings as inline comments on the diff;
+`--allowedTools` grants exactly that one MCP tool, so the job can never push,
+label or merge. It reviews against `CLAUDE.md` and `.claude/rules/` from the
+checkout — so an invariant worth holding a PR to belongs in those files, not
+in the workflow's prompt.
+
+Two guards keep it from going red for reasons that are not the diff: a pull
+request from a fork is skipped, because secrets are withheld from it and the
+step would fail on a missing token rather than skip; and `concurrency` cancels
+a review still in flight when the branch moves under it, which would otherwise
+comment on lines the head no longer has. The `CLAUDE_CODE_OAUTH_TOKEN`
+repository secret is what the whole thing hangs on.
 
 ## The matrix comes from the registry
 

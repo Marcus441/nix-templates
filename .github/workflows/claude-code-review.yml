@@ -1,0 +1,50 @@
+# Code review for THIS repository's pull requests.
+#
+# Like templates.yml and unlike anything under templates/*/.github/workflows/,
+# this one actually runs here. The template workflows are payload; none of them
+# is this. Review runs against the repo root, so CLAUDE.md and .claude/rules/
+# are the standard the diff is held to.
+name: claude review
+
+on:
+  pull_request:
+    types: [opened, synchronize, ready_for_review, reopened]
+
+concurrency:
+  # A second push obsoletes the review in flight — a stale one would comment on
+  # lines the branch no longer has.
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  review:
+    name: review
+    # Secrets are withheld from a pull request opened from a fork, so without
+    # this the job goes red on a contribution rather than skipping. The repo is
+    # public and forking it is the obvious way to send a template back.
+    if: github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: read
+      issues: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # The review reads the diff through the GitHub API, not from local
+          # history, so a shallow checkout is enough to give it the tree.
+          fetch-depth: 1
+
+      # Needs the CLAUDE_CODE_OAUTH_TOKEN repository secret
+      # (`claude setup-token`, then `gh secret set CLAUDE_CODE_OAUTH_TOKEN`).
+      # Without it the step fails rather than skipping.
+      - uses: anthropics/claude-code-action@v1
+        with:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          plugin_marketplaces: "https://github.com/anthropics/claude-code.git"
+          plugins: "code-review@claude-code-plugins"
+          prompt: "/code-review:code-review --comment ${{ github.repository }}/pull/${{ github.event.pull_request.number }}"
+          # Findings land as inline comments on the diff. Nothing else is
+          # allowed: this job reviews, it never pushes.
+          claude_args: '--allowedTools "mcp__github_inline_comment__create_inline_comment"'
