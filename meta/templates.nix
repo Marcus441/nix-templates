@@ -83,6 +83,14 @@
       reason = "ships no project — dotnet new scaffolds it, so there is nothing for enterTest to build";
     };
 
+    dotnet-angular-sqlserver = {
+      description = "devenv environment for .NET and Angular with a supervised SQL Server container";
+      tier = "build";
+      smoke = ["dotnet --version" "node --version" "sqlcmd --version" "docker --version"];
+      systems = ["x86_64-linux"];
+      reason = "SQL Server is not in nixpkgs and devenv has no service for it, so devenv supervises Microsoft's container image — which needs a container runtime the macOS runner does not have, and which Microsoft publishes for linux/amd64 only";
+    };
+
     dotnet-react-postgres = {
       description = "devenv environment for .NET and React with a local PostgreSQL";
       tier = "build";

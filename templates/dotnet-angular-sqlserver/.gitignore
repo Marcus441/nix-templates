@@ -1,0 +1,32 @@
+# Nix
+result
+result-*
+.direnv/
+
+# devenv
+.devenv*
+devenv.local.nix
+
+# .NET build output
+bin/
+obj/
+TestResults/
+*.user
+
+# Node
+node_modules/
+dist/
+
+# Angular
+.angular/
+
+# Editors / OS
+.vscode/
+.idea/
+.vs/
+*.swp
+*.swo
+.DS_Store
+
+.env
+*.log

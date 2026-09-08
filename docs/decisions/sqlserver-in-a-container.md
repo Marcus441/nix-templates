@@ -6,6 +6,11 @@
 it, exactly as it would a native service. The registry entry is
 `tier = "build"` with `systems = ["x86_64-linux"]`.
 
+`dotnet-angular-sqlserver` declares the same block, byte for byte, under an
+application — see the reversal at the end of this document. Everything below
+describes the mechanism both templates use; where only one is meant, it is
+named.
+
 **Why there was no other option.** Two facts, both checked rather than assumed:
 
 - **nixpkgs has no SQL Server engine.** It has the clients — `sqlcmd`
@@ -20,13 +25,14 @@ it, exactly as it would a native service. The registry entry is
 So the choice was never "container or nixpkgs". It was "container, or no SQL
 Server template at all".
 
-**It ships an environment, not a project.** `devenv-postgres` is the model and
-the sibling: six files, a service, an `enterTest` that proves the service
-answers, and nothing else. `docs/decisions/environment-not-project.md` binds
-this template exactly as it binds that one — the full-stack exception in
-`fullstack-monorepo-layout.md` is scoped to two templates and is not extended
-here. Anyone who wants SQL Server underneath an application starts from this
-template and adds the application; that is the point of keeping it generic.
+**`devenv-sqlserver` ships an environment, not a project.** `devenv-postgres`
+is the model and the sibling: six files, a service, an `enterTest` that proves
+the service answers, and nothing else.
+`docs/decisions/environment-not-project.md` binds it exactly as it binds that
+one. Anyone who wants SQL Server underneath an
+application either starts from this template and adds the application, or takes
+`dotnet-angular-sqlserver` and gets one already wired; keeping the generic one
+generic is what makes the first path exist at all.
 
 It is kept to the server itself, one step further than the sibling: no
 database is created for you. `initialDatabases` is one line of a service
@@ -46,14 +52,15 @@ This is not a theoretical concern: the first version of this work hard-coded a
 development password into `devenv.nix`, `docker-compose.yml` and a C#
 fallback, and GitGuardian failed the pull request for it while all 41 template
 legs passed green. A committed dev credential is a real finding, not a style
-note.
+note — and when that version came back as `dotnet-angular-sqlserver`, the three
+sites came back with it and had to be ported rather than restored.
 
 **Breaks:** the repository's implicit promise that Nix supplies everything a
-template needs. Fourteen templates are self-contained; this one is not.
-`devenv shell` succeeding no longer implies `devenv up` will work, because the
-container daemon is the host's and nothing in the environment can provide it.
-That is stated in the template's README and in CLAUDE.md §7 rather than left
-for a consumer to discover at `devenv up`.
+template needs. Fourteen of the sixteen templates are self-contained; the two
+that declare SQL Server are not. `devenv shell` succeeding no longer implies
+`devenv up` will work, because the container daemon is the host's and nothing
+in the environment can provide it. That is stated in both READMEs and in
+CLAUDE.md §7 rather than left for a consumer to discover at `devenv up`.
 
 The rest of the cost, all of it real:
 
@@ -111,14 +118,49 @@ and `enterTest` can prove nothing whatever — the tier would drop to `shell`,
 which CLAUDE.md §3 describes as proving almost nothing. A template whose whole
 subject is a service has to start the service.
 
-**Rejected: shipping an application on top of it.** The first version of this
-work was a full-stack `dotnet-angular-sqlserver` — a .NET solution, an Angular
-workspace, a contracts package, compose files and payload workflows. It passed
-the harness, and it was still the wrong change: `environment-not-project.md`
-forbids exactly that, the full-stack supersession is scoped to the two
-templates that already exist, and a consumer who wants SQL Server under a
-different stack would have had to delete most of the template first. The
-environment is the reusable part; the application was noise around it.
+**Reversed: shipping an application on top of it.** This section rejected that,
+and the rejection is now overturned. Both halves are kept, because the argument
+only makes sense as a pair.
+
+*What was rejected.* The first version of this work was a full-stack
+`dotnet-angular-sqlserver` — a .NET solution, an Angular workspace, a contracts
+package, compose files and payload workflows. It passed the harness, and it was
+still the wrong change: `environment-not-project.md` forbids exactly that, the
+full-stack supersession is scoped to the two templates that already exist, and
+a consumer who wants SQL Server under a different stack would have had to
+delete most of the template first. The environment is the reusable part; the
+application was noise around it.
+
+*Why that no longer holds.* The third objection was the load-bearing one, and
+shipping `devenv-sqlserver` answered it: the reusable part now exists as its own
+template, so a consumer who wants SQL Server under a different stack takes that
+one and deletes nothing. The full-stack template stops being the only way to get
+this database and becomes what the two PostgreSQL siblings already are — the
+worked example of the seams, which `fullstack-monorepo-layout.md` argues no
+scaffolder can generate. The remaining objections are answered by widening the
+supersession from two templates to three, deliberately and in that document,
+rather than by bending it.
+
+*What the reversal costs, stated plainly.* The aging argument in
+`environment-not-project.md` is not answered here either — `devenv test` proves
+the reference architecture compiles, comes up and round-trips, not that an
+Angular workspace laid out this way is still the one you would write. The
+monorepo scaffold now exists three times instead of twice, held in step by hand.
+And the repository now has two templates whose `devenv up` depends on a host
+container daemon rather than one, which is the promise this document already
+records breaking.
+
+*One thing did not survive the round trip.* The rejected version hard-coded a
+development password into `devenv.nix`, `docker-compose.yml` and a C# fallback
+constant — the three sites the SA-password section above names. The restored
+template
+ports `devenv-sqlserver`'s generated-password design instead:
+`scripts.mssql-password` for the credential, `scripts.mssql-connection-string`
+for the one place the connection-string shape is written, `processes.api`
+exporting it rather than `env` carrying it, compose reading `MSSQL_SA_PASSWORD`
+from the environment and refusing to start without it, and `Database.cs`
+throwing instead of falling back. Nothing in either artifact contains a
+credential.
 
 **Rejected: unpacking Microsoft's `.deb` under `buildFHSEnv`.** SQL Server does
 not run on stock Linux the way a normal daemon does — it ships its own host
@@ -128,6 +170,8 @@ be Linux-only, so it would not even buy back the platform claim the container
 costs.
 
 **Superseded if either upstream moves.** If nixpkgs packages the engine, or
-devenv grows a `services.mssql`, the fix is small: delete `processes.sqlserver`,
-enable the service, drop `docker-client` from `packages`, and widen `systems`.
-Nothing else in the template depends on the container.
+devenv grows a `services.mssql`, the fix is small and the same in both
+templates: delete `processes.sqlserver`, enable the service, drop
+`docker-client` from `packages`, and widen `systems`. Nothing else depends on
+the container — in `dotnet-angular-sqlserver` the API reads a connection string
+either way, so only the script that composes it would need the new host.

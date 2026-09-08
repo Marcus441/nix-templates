@@ -1,0 +1,18 @@
+<main>
+  <h1>items</h1>
+
+  <form (ngSubmit)="submit()">
+    <input name="name" placeholder="name" [(ngModel)]="name" />
+    <button type="submit">add</button>
+  </form>
+
+  @if (error(); as message) {
+    <p role="alert">{{ message }}</p>
+  }
+
+  <ul>
+    @for (item of items(); track item.id) {
+      <li>{{ item.name }}</li>
+    }
+  </ul>
+</main>
