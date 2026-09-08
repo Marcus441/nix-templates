@@ -55,8 +55,8 @@ tests:
 | `aarch64-linux` | `ubuntu-24.04-arm` — free for public repositories only |
 | `aarch64-darwin` | `macos-latest` |
 
-`android-kotlin`, narrowed to `x86_64-linux`, gets one leg; everything else gets
-three. 40 legs from 14 templates.
+`android-kotlin` and `devenv-sqlserver`, both narrowed to `x86_64-linux`, get
+one leg each; everything else gets three. 41 legs from 15 templates.
 
 The runner list lives in the `RUNNERS` env of the `registry` job, and the job
 summary prints any `systems` entry it does not cover. That list should stay
@@ -95,4 +95,4 @@ tier.
 `cache.nixos.org`, so the cost is download, which the Actions store cache
 removes. Cachix would need a secret and would break fork PRs for no benefit.
 Keep `gc-max-store-size` set: the `cpp` and `rust` closures will otherwise
-exhaust the 10 GB per-repository cache budget across fourteen keys.
+exhaust the 10 GB per-repository cache budget across fifteen keys.
