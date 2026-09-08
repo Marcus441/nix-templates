@@ -68,6 +68,14 @@
       smoke = ["psql --version" "pg_isready --version"];
     };
 
+    devenv-sqlserver = {
+      description = "devenv environment with a local SQL Server service";
+      tier = "build";
+      smoke = ["sqlcmd --version" "docker --version"];
+      systems = ["x86_64-linux"];
+      reason = "SQL Server is not in nixpkgs and devenv has no service for it, so devenv supervises Microsoft's container image — which needs a container runtime the macOS runner does not have, and which Microsoft publishes for linux/amd64 only";
+    };
+
     dotnet = {
       description = "Dev environment for .NET, with F# tooling";
       tier = "shell";
