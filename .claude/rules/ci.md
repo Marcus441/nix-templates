@@ -8,15 +8,17 @@ What nothing else in the repo says.
 
 ## `templates/*/.github/workflows/*.yml` is not this repo's CI
 
-Twelve workflow files across eight templates are **payload**. They ship inside
+Fifteen workflow files across nine templates are **payload**. They ship inside
 a template so that projects generated from it inherit a working pipeline —
-`android-kotlin` a Gradle-and-emulator one, the other seven an
-install-devenv-then-`devenv test` one, with `dotnet-react-postgres` and
-`go-react-postgres` adding path-filtered `backend.yml` and `frontend.yml`
-beside their `ci.yml`. GitHub only runs workflows found at the repository
-root, so none of them has ever executed here and never will. Moving one to the
-root would break every generated project and test nothing. Commit `11d22e0`
-moved the android one *into* its template deliberately.
+`android-kotlin` a Gradle-and-emulator one, the other eight an
+install-devenv-then-`devenv test` one, with the three full-stack templates
+adding path-filtered `backend.yml` and `frontend.yml` beside their `ci.yml`.
+`dotnet-angular-sqlserver`'s `ci.yml` is the one that runs on Linux alone
+rather than Linux and macOS, because its `devenv test` needs a container
+runtime the macOS runner does not have. GitHub only runs workflows found at
+the repository root, so none of them has ever executed here and never will.
+Moving one to the root would break every generated project and test nothing.
+Commit `11d22e0` moved the android one *into* its template deliberately.
 
 ## `claude-code-review.yml` reviews, and only comments
 
@@ -55,8 +57,9 @@ tests:
 | `aarch64-linux` | `ubuntu-24.04-arm` — free for public repositories only |
 | `aarch64-darwin` | `macos-latest` |
 
-`android-kotlin` and `devenv-sqlserver`, both narrowed to `x86_64-linux`, get
-one leg each; everything else gets three. 41 legs from 15 templates.
+`android-kotlin`, `devenv-sqlserver` and `dotnet-angular-sqlserver`, all
+narrowed to `x86_64-linux`, get one leg each; everything else gets three.
+42 legs from 16 templates.
 
 The runner list lives in the `RUNNERS` env of the `registry` job, and the job
 summary prints any `systems` entry it does not cover. That list should stay
@@ -95,4 +98,4 @@ tier.
 `cache.nixos.org`, so the cost is download, which the Actions store cache
 removes. Cachix would need a secret and would break fork PRs for no benefit.
 Keep `gc-max-store-size` set: the `cpp` and `rust` closures will otherwise
-exhaust the 10 GB per-repository cache budget across fifteen keys.
+exhaust the 10 GB per-repository cache budget across sixteen keys.

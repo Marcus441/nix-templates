@@ -1,12 +1,12 @@
 # Full-stack templates ship a reference monorepo
 
-**The decision:** `dotnet-react-postgres` and `go-react-postgres` follow one
-monorepo layout, and they ship it populated — a minimal reference
-architecture, not an empty environment:
+**The decision:** `dotnet-react-postgres`, `go-react-postgres` and
+`dotnet-angular-sqlserver` follow one monorepo layout, and they ship it
+populated — a minimal reference architecture, not an empty environment:
 
 ```
 apps/api/                the backend; its language's own conventions inside
-apps/web/                Vite + React + TypeScript, shipped, typed from the contracts
+apps/web/                the front end, shipped, typed from the contracts
 packages/contracts/      the single source of API types
 scripts/                 setup.sh, generate-contracts.sh
 docs/                    architecture.md, getting-started.md
@@ -17,8 +17,21 @@ package.json             npm-workspaces root (apps/web, packages/contracts)
 
 Inside `apps/api` the language rules: .NET is `Api.sln` over
 `src/{Api,Application,Domain,Infrastructure}` plus `tests/`; Go is `cmd/` +
-`internal/` + `db/migrations/` with a `Makefile`. The web half and the
-contracts package are deliberately near-identical between the two templates.
+`internal/` + `db/migrations/` with a `Makefile`. The contracts package is
+deliberately near-identical across the three.
+
+**Two axes vary, and only where the ecosystem forces it.** The front end is
+Vite + React + TypeScript in the two `-react-` templates and an Angular CLI
+workspace in `dotnet-angular-sqlserver` — which brings its own conventions
+rather than being bent into the siblings': `ng build` *is* the typecheck, so
+there is no `tsc --noEmit` script (tsc cannot check an Angular template), `ng
+test` is vitest through the `@angular/build:unit-test` builder so CI needs no
+browser, and the dev proxy is `proxy.conf.json` rather than `vite.config.ts`.
+The database is `services.postgres` in two and a devenv-supervised container in
+the third, because nixpkgs has no SQL Server engine —
+`docs/decisions/sqlserver-in-a-container.md`, which also records the reversal
+that let a full-stack template use it. That one narrows to `x86_64-linux` and
+needs a host container runtime; the other two do not.
 
 **Why:** a full-stack template's value is the seams, and a scaffolder cannot
 generate a seam. `npm create vite` produces a React app; it cannot produce a
@@ -41,13 +54,15 @@ environment, with nothing checking that the two agree and with which one a
 developer gets decided by habit. One definition of local dev; the second
 artifact answers a different question.
 
-**Contracts: one invariant, two directions.** The invariant is that
-`packages/contracts` is the single source of API types, and the TypeScript in
-`src/api.d.ts` is derived and committed — the frontend typechecks offline, an
-API change is a reviewable diff, and nobody edits generated types or
-duplicates one into `apps/web`. Which artifact is authoritative follows the
-language. .NET serves an OpenAPI document from the code, so the types are
-generated from the running API — `scripts/generate-contracts.sh` starts one if
+**Contracts: one invariant, two directions** — two directions across three
+templates, because `dotnet-angular-sqlserver` is code-first like its .NET
+sibling and generates `api.d.ts` from its own API rather than copying that
+sibling's. The invariant is that `packages/contracts` is the single source of
+API types, and the TypeScript in `src/api.d.ts` is derived and committed — the
+frontend typechecks offline, an API change is a reviewable diff, and nobody
+edits generated types or duplicates one into `apps/web`. Which artifact is
+authoritative follows the language. .NET serves an OpenAPI document from the
+code, so the types are generated from the running API — `scripts/generate-contracts.sh` starts one if
 nothing answers — and the flow is code-first. Go's stdlib serves no such
 document, and one resource does not justify the framework or annotation
 generator that would, so `packages/contracts/openapi.yaml` is the committed
@@ -68,7 +83,7 @@ commit the lockfile it writes, and they are locked from then on. A committed
 `android-cli.md`'s AGP lesson in npm form — and the manifests float (`^` and
 `*` ranges) for the same reason.
 
-**Breaks:** `docs/decisions/environment-not-project.md`, for these two
+**Breaks:** `docs/decisions/environment-not-project.md`, for these three
 templates only. They ship exactly what it forbids — an opinion about how to
 structure an application — and its aging argument is not answered, it is
 accepted: `devenv test` proves the reference architecture compiles, comes up
@@ -85,10 +100,11 @@ Two more costs, both real:
   knowingly, for the seam reasons above; the mitigation for the aging it
   invites is the floating ranges, the absent lockfile, and a web half kept to
   one page and one test.
-- **The two templates duplicate the whole monorepo scaffold.** Inv. 1 forbids
-  sharing it, so `apps/web`, `packages/contracts`, the payload workflows and
-  the compose wiring exist twice, held in step by hand — the C++ ladder's
-  divergence, wider. A fix to one sibling is worth applying to the other.
+- **The three templates duplicate the whole monorepo scaffold.** Inv. 1 forbids
+  sharing it, so `packages/contracts`, the payload workflows and the compose
+  wiring exist three times, held in step by hand — the C++ ladder's divergence,
+  wider. A fix to one sibling is worth applying to the others, and the third
+  template arrived carrying fixes the first two still lack: CLAUDE.md §7.
 
 **Rejected: compose in the dev loop** — a `docker compose up` path in the
 README's dev instructions, or an `.envrc` that offers it. Two definitions of

@@ -2,7 +2,7 @@
 
 This repository publishes **project templates** consumed by
 `nix flake init -t github:Marcus441/nix-templates#<name>`. Its product is not a
-configuration — it is fifteen standalone devenv environments that other people
+configuration — it is sixteen standalone devenv environments that other people
 copy. That one fact drives every rule below. If a change would violate an
 invariant, stop and say so.
 
@@ -57,7 +57,7 @@ nixpkgs. It exists to *describe and test* the templates. `flake.templates` is
 template. The root flake is also the distribution mechanism, which is why it
 survives a repo with no flake templates in it.
 
-**The templates** are fifteen unrelated projects that happen to live in one
+**The templates** are sixteen unrelated projects that happen to live in one
 git repo — all devenv environments. They share no code and cannot. They are the
 artifact.
 
@@ -134,7 +134,7 @@ one is not an improvement at six files.
 
 | Locked (committed `devenv.lock`) | Unlocked |
 | --- | --- |
-| — none today | all fifteen |
+| — none today | all sixteen |
 
 Unlocked so consumers get current nixpkgs on first use. The bar for locking is
 resolution being slow or fragile, and **nothing meets it right now** —
@@ -259,16 +259,29 @@ items are deleted and survivors keep their numbers.
     macOS runners ship bash 3.2.57 and nixpkgs has no 3.2 to test against, so
     the constraints in `.claude/rules/harness.md` are held by review and by the
     darwin legs going green — nothing checks them before a push.
-11. **`devenv-sqlserver` is not self-contained, and it is the only one.** SQL
-    Server is not in nixpkgs and devenv has no service for it, so its database
-    is a container devenv supervises —
-    `docs/decisions/sqlserver-in-a-container.md`. Three consequences a reader
-    has to know: `devenv shell` succeeding no longer implies `devenv up` will
-    work, because the daemon is the host's; the image tag is an input no lock
-    can pin; and each run leaves a ~150 MB docker volume outside the project,
-    because the image runs as uid 10001 and cannot write a host-owned bind
-    mount. Fixed by nixpkgs packaging the engine or devenv growing
-    `services.mssql`, and by nothing else.
+11. **Two templates are not self-contained, and they are the only ones.** SQL
+    Server is not in nixpkgs and devenv has no service for it, so in both
+    `devenv-sqlserver` and `dotnet-angular-sqlserver` the database is a
+    container devenv supervises — `docs/decisions/sqlserver-in-a-container.md`,
+    which also records the reversal that let the second one exist. The block is
+    byte-identical in both, so a fix to one belongs in the other. Three
+    consequences a reader has to know: `devenv shell` succeeding no longer
+    implies `devenv up` will work, because the daemon is the host's; the image
+    tag is an input no lock can pin; and each run leaves a ~150 MB docker volume
+    outside the project, because the image runs as uid 10001 and cannot write a
+    host-owned bind mount. Fixed by nixpkgs packaging the engine or devenv
+    growing `services.mssql`, and by nothing else.
+12. **The two older full-stack templates carry bugs their sibling has fixed.**
+    Found while writing `dotnet-angular-sqlserver`, and left alone because that
+    task did not own them: `nix flake init` does not preserve the executable
+    bit, so `dotnet-react-postgres` and `go-react-postgres` both document
+    `./scripts/setup.sh`, which cannot run from a fresh copy; npm does not hoist
+    a non-root workspace's devDependency, so `dotnet-react-postgres` declares
+    `openapi-typescript` in `packages/contracts/package.json` where its
+    root-level `scripts/generate-contracts.sh` cannot find it; and their
+    committed `api.d.ts` no longer matches what their own API emits. The third
+    template's fixes — `bash scripts/…` in the docs, the generator as a
+    workspace-root devDependency, a regenerated contract — port over directly.
 
 ## 8. Anti-patterns
 
@@ -280,7 +293,7 @@ items are deleted and survivors keep their numbers.
 | A comment in a template's `devenv.nix` | It belongs in that template's README — `.claude/rules/template-devenv-conventions.md` |
 | A second input in `devenv.yaml` | Inv. 4 — one input, nixpkgs. Checked |
 | A template importing `../` or `../../shared` | Inv. 1 — the copy would dangle. Checked in both files |
-| A template that ships an application architecture | It ships an environment — `docs/decisions/environment-not-project.md`. The two full-stack templates are the one scoped exception: `docs/decisions/fullstack-monorepo-layout.md` |
+| A template that ships an application architecture | It ships an environment — `docs/decisions/environment-not-project.md`. The three full-stack templates are the one scoped exception: `docs/decisions/fullstack-monorepo-layout.md` |
 | docker-compose presented as the dev loop in a full-stack template | devenv owns the dev loop; compose is deployment parity only — `docs/decisions/fullstack-monorepo-layout.md` |
 | Hand-written `flake.templates` | Inv. 2 — it is derived |
 | Extracting a shared `lib/` for templates to import | Inv. 1 — impossible, not merely discouraged |
@@ -365,7 +378,7 @@ items are deleted and survivors keep their numbers.
   dependencies and file layout — the `devenv` stub is already the empty
   environment. What survives from `docs/decisions/environment-not-project.md`
   is the rule that outlived it — a template ships an environment, not a
-  project — with one scoped supersession: the two full-stack templates ship a
+  project — with one scoped supersession: the three full-stack templates ship a
   minimal reference architecture, `docs/decisions/fullstack-monorepo-layout.md`,
   and it still binds every other template.
 - **If a request genuinely doesn't fit,** say so and give options with their
