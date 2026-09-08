@@ -13,12 +13,15 @@ line is not size, it is who can keep the thing current: nixpkgs and the
 language's own toolchain move on a schedule this repo tracks; a framework's
 idioms do not.
 
-**Superseded for the two full-stack templates only — see
-`docs/decisions/fullstack-monorepo-layout.md`.** `dotnet-react-postgres` and
-`go-react-postgres` ship a minimal reference architecture — the opinion the
-paragraph above forbids — and that document records why, including the
-reversal of the web-from-scaffolder position. Nothing else is released: for
-every other template this rule binds exactly as written.
+**Superseded for the three full-stack templates only — see
+`docs/decisions/fullstack-monorepo-layout.md`.** `dotnet-react-postgres`,
+`go-react-postgres` and `dotnet-angular-sqlserver` ship a minimal reference
+architecture — the opinion the paragraph above forbids — and that document
+records why, including the reversal of the web-from-scaffolder position. The
+third was itself rejected under this rule before the supersession was widened
+to admit it, and `docs/decisions/sqlserver-in-a-container.md` records both
+halves of that. Nothing else is released: for every other template this rule
+binds exactly as written.
 
 **Breaks:** `ts-node-rest-api` was removed for sitting on the wrong side of it,
 and `nix flake init -t github:Marcus441/nix-templates#ts-node-rest-api` no longer

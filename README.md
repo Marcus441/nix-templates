@@ -1,6 +1,6 @@
 # nix-templates
 
-Project templates for `nix flake init`. All fifteen are standalone
+Project templates for `nix flake init`. All sixteen are standalone
 [devenv](https://devenv.sh) environments: a reproducible dev shell, real
 services and processes where a template declares them — started, supervised
 and stopped by devenv — and `devenv test` as the one command that proves the
@@ -17,11 +17,11 @@ nix profile install nixpkgs#devenv
 Every template needs both. None ships a `flake.nix`, so `nix develop` applies
 to none of them — `devenv shell` is the door.
 
-One template needs a third thing: `devenv-sqlserver` runs SQL Server as a
-container, because nixpkgs has no engine and devenv has no service for it, so
-`devenv up` there needs a working container runtime —
-`docs/decisions/sqlserver-in-a-container.md`. Every other template is
-self-contained.
+Two templates need a third thing: `devenv-sqlserver` and
+`dotnet-angular-sqlserver` run SQL Server as a container, because nixpkgs has
+no engine and devenv has no service for it, so `devenv up` there needs a
+working container runtime — `docs/decisions/sqlserver-in-a-container.md`. Both
+are x86_64 Linux only. Every other template is self-contained.
 
 Then pick a template:
 
@@ -48,6 +48,7 @@ With no `#name`, you get `devenv` — a minimal environment to fill in.
 | `typst` | Typst documents, with font plumbing |
 | `devenv-postgres` | A local PostgreSQL, started and stopped by devenv |
 | `devenv-sqlserver` | A local SQL Server, started and stopped by devenv; needs docker, x86_64 Linux only |
+| `dotnet-angular-sqlserver` | .NET 10 + Angular + a supervised SQL Server container — a monorepo with a shared contracts package; needs docker, x86_64 Linux only |
 | `dotnet-react-postgres` | .NET 10 + React + a supervised PostgreSQL — a small monorepo with a shared contracts package |
 | `go-react-postgres` | Go + React + a supervised PostgreSQL — the same monorepo shape, spec-first |
 

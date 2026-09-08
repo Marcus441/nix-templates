@@ -35,7 +35,7 @@ is gone: every template requires devenv and the cost is universal. The three
 smaller costs went the same way — `tier = "build"` means `devenv test` alone,
 a `systems` claim is CI-matrix-enforced repo-wide, and the two-input drift
 surface is now every template's. The front-end deferral under "Unchanged"
-below was also reversed, for the two full-stack templates only —
+below was also reversed, for the three full-stack templates only —
 `docs/decisions/fullstack-monorepo-layout.md`.
 
 **Breaks:** the repository's one-sentence description of itself. It is no longer
