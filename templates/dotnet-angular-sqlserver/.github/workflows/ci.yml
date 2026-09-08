@@ -1,0 +1,32 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  # Linux only, unlike the PostgreSQL templates in this collection. `devenv up`
+  # runs SQL Server as a container, so this job needs a container runtime — the
+  # GitHub macOS runners have none, and Microsoft publishes the image for
+  # linux/amd64 only. See the README's "SQL Server runs in a container".
+  devenv:
+    name: devenv test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: DeterminateSystems/nix-installer-action@main
+      # devenv's own public cache. No secret, so this still works on fork PRs;
+      # without it the runner builds devenv's closure from source.
+      - uses: cachix/cachix-action@v16
+        with:
+          name: devenv
+      - run: nix profile install nixpkgs#devenv
+      # `dotnet run` restores from nuget.org and the first run pulls the SQL
+      # Server image. devenv test is not a build sandbox, so it has the network
+      # for both — which is also why this job is slow the first time.
+      - run: devenv test

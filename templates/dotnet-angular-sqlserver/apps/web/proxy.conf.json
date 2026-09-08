@@ -1,0 +1,14 @@
+{
+  "/health": {
+    "target": "http://127.0.0.1:5080",
+    "secure": false
+  },
+  "/items": {
+    "target": "http://127.0.0.1:5080",
+    "secure": false
+  },
+  "/openapi": {
+    "target": "http://127.0.0.1:5080",
+    "secure": false
+  }
+}

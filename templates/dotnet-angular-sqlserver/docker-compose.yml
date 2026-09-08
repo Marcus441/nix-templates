@@ -1,0 +1,54 @@
+# DEPLOYMENT PARITY ONLY. Local development runs under devenv — `devenv up`
+# owns SQL Server, the API and the ng dev server, and `devenv test` proves
+# them. This file exists so the images in infra/docker can be exercised the
+# way a deployment would run them; it is never part of the dev loop.
+#
+# The SA password is not committed anywhere, so supply it from the environment:
+#
+#   export MSSQL_SA_PASSWORD="$(mssql-password)"   # inside the devenv shell
+#   docker compose up --build                      # web on :8080, api on :5080
+
+services:
+  mssql:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    platform: linux/amd64
+    environment:
+      ACCEPT_EULA: "Y"
+      MSSQL_PID: Developer
+      MSSQL_SA_PASSWORD: ${MSSQL_SA_PASSWORD:?set MSSQL_SA_PASSWORD, e.g. export MSSQL_SA_PASSWORD="$(mssql-password)"}
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "/opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P \"$$MSSQL_SA_PASSWORD\" -C -Q 'SELECT 1'",
+        ]
+      interval: 5s
+      timeout: 10s
+      retries: 60
+      start_period: 30s
+    volumes:
+      - mssql-data:/var/opt/mssql
+
+  api:
+    build:
+      context: .
+      dockerfile: infra/docker/api.Dockerfile
+    environment:
+      ConnectionStrings__Default: "Server=mssql,1433;Database=app;User Id=sa;Password=${MSSQL_SA_PASSWORD};TrustServerCertificate=True;Encrypt=False"
+    depends_on:
+      mssql:
+        condition: service_healthy
+    ports:
+      - "5080:5080"
+
+  web:
+    build:
+      context: .
+      dockerfile: infra/docker/web.Dockerfile
+    depends_on:
+      - api
+    ports:
+      - "8080:80"
+
+volumes:
+  mssql-data:
